@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    @apply bg-ink-50 text-ink-900 font-sans;
+  }
+  ::selection {
+    @apply bg-signal-400/30;
+  }
+  *:focus-visible {
+    outline: 2px solid #12987D;
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .input-field {
+    @apply w-full rounded-lg border border-ink-100 bg-white px-3.5 py-2.5 text-[0.925rem] text-ink-900 placeholder:text-ink-300 transition-colors focus:border-signal-500 focus:outline-none focus:ring-2 focus:ring-signal-500/15;
+  }
+  .field-label {
+    @apply mb-1.5 block text-[0.8rem] font-medium text-ink-500;
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-ink-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-ink-800 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-ink-100 bg-white px-4 py-2.5 text-sm font-medium text-ink-700 transition-colors hover:bg-ink-50 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-rust-500/25 bg-rust-500/5 px-4 py-2.5 text-sm font-medium text-rust-500 transition-colors hover:bg-rust-500/10 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .icon-btn {
+    @apply inline-flex h-8 w-8 items-center justify-center rounded-md text-ink-400 transition-colors hover:bg-ink-100 hover:text-ink-700;
+  }
+  .panel {
+    @apply rounded-xl border border-ink-100 bg-white shadow-subtle;
+  }
+}
