@@ -1,21 +1,27 @@
-import { NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Building2, CreditCard, LogOut, Nfc } from 'lucide-react'
-import { useAuth } from '../context/AuthContext.jsx'
+import { NavLink, useNavigate } from "react-router-dom";
+import {
+  LayoutDashboard,
+  Building2,
+  CreditCard,
+  LogOut,
+  Nfc,
+} from "lucide-react";
+import { useAuth } from "../context/AuthContext.jsx";
 
 const NAV = [
-  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/entities', label: 'Entities', icon: Building2 },
-  { to: '/subscriptions', label: 'Subscriptions', icon: CreditCard },
-]
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/entities", label: "Entities", icon: Building2 },
+  { to: "/subscriptions", label: "Subscriptions", icon: CreditCard },
+];
 
 export default function Layout({ children }) {
-  const { user, signOut } = useAuth()
-  const navigate = useNavigate()
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
 
   const handleSignOut = () => {
-    signOut()
-    navigate('/login')
-  }
+    signOut();
+    navigate("/login");
+  };
 
   return (
     <div className="flex min-h-screen bg-ink-50">
@@ -25,7 +31,7 @@ export default function Layout({ children }) {
             <Nfc size={17} strokeWidth={2.25} />
           </div>
           <span className="font-display text-[1.05rem] font-semibold tracking-tight text-ink-900">
-            Tapline
+            Rate UP
           </span>
         </div>
 
@@ -37,8 +43,8 @@ export default function Layout({ children }) {
               className={({ isActive }) =>
                 `flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                   isActive
-                    ? 'bg-ink-900 text-white'
-                    : 'text-ink-500 hover:bg-ink-50 hover:text-ink-900'
+                    ? "bg-ink-900 text-white"
+                    : "text-ink-500 hover:bg-ink-50 hover:text-ink-900"
                 }`
               }
             >
@@ -54,7 +60,9 @@ export default function Layout({ children }) {
               {user?.email?.[0]?.toUpperCase()}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-ink-900">{user?.email}</p>
+              <p className="truncate text-sm font-medium text-ink-900">
+                {user?.email}
+              </p>
               <p className="text-xs text-ink-300">Administrator</p>
             </div>
             <button
@@ -73,5 +81,5 @@ export default function Layout({ children }) {
         <div className="mx-auto max-w-6xl px-8 py-8">{children}</div>
       </main>
     </div>
-  )
+  );
 }
