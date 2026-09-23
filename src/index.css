@@ -5,39 +5,60 @@
 @layer base {
   html {
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
+
   body {
     @apply bg-ink-50 text-ink-900 font-sans;
+    margin: 0;
+    min-width: 320px;
   }
-  ::selection {
-    @apply bg-signal-400/30;
-  }
+
+  ::selection { @apply bg-signal-400/30; }
+
+  * { box-sizing: border-box; }
+
   *:focus-visible {
     outline: 2px solid #12987D;
     outline-offset: 2px;
   }
+
+  button, input, textarea, select { font: inherit; }
+
+  button { -webkit-tap-highlight-color: transparent; }
 }
 
 @layer components {
   .input-field {
-    @apply w-full rounded-lg border border-ink-100 bg-white px-3.5 py-2.5 text-[0.925rem] text-ink-900 placeholder:text-ink-300 transition-colors focus:border-signal-500 focus:outline-none focus:ring-2 focus:ring-signal-500/15;
+    @apply w-full rounded-xl border border-ink-100 bg-white px-3.5 py-2.5 text-[0.925rem] text-ink-900 placeholder:text-ink-300 transition-all focus:border-signal-500 focus:outline-none focus:ring-2 focus:ring-signal-500/15;
   }
+
   .field-label {
-    @apply mb-1.5 block text-[0.8rem] font-medium text-ink-500;
+    @apply mb-1.5 block text-[0.8rem] font-semibold text-ink-500;
   }
+
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-ink-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-ink-800 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-ink-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-ink-800 active:scale-[.99] disabled:cursor-not-allowed disabled:opacity-50;
   }
+
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-ink-100 bg-white px-4 py-2.5 text-sm font-medium text-ink-700 transition-colors hover:bg-ink-50 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-ink-100 bg-white px-4 py-2.5 text-sm font-semibold text-ink-700 transition hover:bg-ink-50 active:scale-[.99] disabled:cursor-not-allowed disabled:opacity-50;
   }
+
   .btn-danger {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-rust-500/25 bg-rust-500/5 px-4 py-2.5 text-sm font-medium text-rust-500 transition-colors hover:bg-rust-500/10 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-rust-500/25 bg-rust-500/5 px-4 py-2.5 text-sm font-semibold text-rust-500 transition hover:bg-rust-500/10 disabled:cursor-not-allowed disabled:opacity-50;
   }
+
   .icon-btn {
-    @apply inline-flex h-8 w-8 items-center justify-center rounded-md text-ink-400 transition-colors hover:bg-ink-100 hover:text-ink-700;
+    @apply inline-flex h-9 w-9 items-center justify-center rounded-lg text-ink-400 transition hover:bg-ink-100 hover:text-ink-700;
   }
+
   .panel {
-    @apply rounded-xl border border-ink-100 bg-white shadow-subtle;
+    @apply rounded-2xl border border-ink-100 bg-white shadow-subtle;
   }
+}
+
+@media (max-width: 640px) {
+  .panel { border-radius: 1.1rem; }
+  .btn-primary, .btn-secondary { width: 100%; }
 }
