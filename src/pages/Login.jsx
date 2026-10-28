@@ -37,7 +37,7 @@ export default function Login() {
     <div className="flex min-h-screen items-center justify-center bg-ink-50 px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center text-center">
-          <div className="mb-4 flex h-32 w-32 items-center justify-center overflow-hidden rounded-2xl bg-black">
+          <div className="mb-4 flex h-32 w-32 items-center justify-center overflow-hidden rounded-2xl border border-white/80 bg-[#FAFBFC] shadow-subtle">
             <img
               src={rateUpLogo}
               alt="Rate Up"
