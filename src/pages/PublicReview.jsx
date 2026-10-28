@@ -197,28 +197,13 @@ export default function PublicReview() {
     }
   }, [isBusinessPage, navigate, routeRating, slug]);
 
-  const chooseGoogle = async () => {
+  const chooseGoogle = () => {
     if (!googleUrl) {
       setError("googleUnavailable");
       return;
     }
 
-    setSubmitting(true);
-    setError("");
-    try {
-      await api.submitFeedback(slug, {
-        quality: rating,
-        service: rating,
-        taste: rating,
-        comment: null,
-        reasons: [],
-        redirected_to_google: true,
-      });
-      window.location.assign(googleUrl);
-    } catch (err) {
-      setError(apiErrorMessage(err, t.failed));
-      setSubmitting(false);
-    }
+    window.location.assign(googleUrl);
   };
 
   const chooseBusiness = () => {
@@ -421,10 +406,9 @@ export default function PublicReview() {
             <button
               type="button"
               onClick={chooseGoogle}
-              disabled={submitting}
               className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-ink-900 px-5 text-sm font-bold text-white transition hover:bg-ink-800 disabled:opacity-60"
             >
-              {submitting ? <Loader2 size={17} className="animate-spin" /> : <ExternalLink size={17} />}
+              <ExternalLink size={17} />
               {t.googleChoice}
             </button>
             <button
