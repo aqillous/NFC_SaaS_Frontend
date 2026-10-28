@@ -280,7 +280,14 @@ function RestaurantDashboard() {
     }
 
     return feedback.filter((item) =>
-      [item.comment, item.overall_score, item.quality, item.service, item.taste]
+      [
+        item.comment,
+        item.overall_score,
+        item.quality,
+        item.service,
+        item.taste,
+        ...(item.reasons || []).map(feedbackReasonLabel),
+      ]
         .join(" ")
         .toLowerCase()
         .includes(needle),
@@ -551,10 +558,31 @@ function FeedbackRow({ item }) {
               {item.comment}
             </p>
           )}
+
+          {item.reasons?.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {item.reasons.map((reason) => (
+                <span
+                  key={reason}
+                  className="rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-700"
+                >
+                  {feedbackReasonLabel(reason)}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </article>
   );
+}
+
+function feedbackReasonLabel(reason) {
+  return {
+    service_speed: "Service speed",
+    staff_attitude: "Staff attitude",
+    product_quality: "Product or service quality",
+  }[reason] || reason;
 }
 
 /* -------------------------------------------------------------------------- */

@@ -227,6 +227,19 @@ function FeedbackItem({ item }) {
             </div>
           )}
 
+          {item.reasons?.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {item.reasons.map((reason) => (
+                <span
+                  key={reason}
+                  className="rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-700"
+                >
+                  {feedbackReasonLabel(reason)}
+                </span>
+              ))}
+            </div>
+          )}
+
           {/* Metadata */}
           <div className="mt-3 flex flex-wrap items-center gap-2.5 text-xs">
             <span className="inline-flex items-center gap-1 text-ink-400">
@@ -250,6 +263,14 @@ function FeedbackItem({ item }) {
       </div>
     </article>
   );
+}
+
+function feedbackReasonLabel(reason) {
+  return {
+    service_speed: "Service speed",
+    staff_attitude: "Staff attitude",
+    product_quality: "Product or service quality",
+  }[reason] || reason;
 }
 
 function Rating({ label, value }) {

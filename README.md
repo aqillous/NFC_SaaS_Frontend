@@ -17,6 +17,11 @@ React Router + Axios.
   modal to create/edit, and a status filter (including "currently valid"
   which reflects the backend's live date-range check, not just the stored
   status)
+- `/r/:slug` — public RateUp review flow with a one-second logo animation,
+  1–5 star rating, and Google/business sharing options
+- `/r/:slug/business` — private feedback form with selectable improvement
+  reasons and an optional comment; submitted reasons appear in dashboard
+  feedback and the entity feedback drawer
 
 ## Setup
 
@@ -53,3 +58,7 @@ npm run preview # serve the production build locally
   doesn't take subscription fields.
 - The dashboard needs a small backend addition — see `backend_updates/` in
   this delivery if you haven't applied it yet.
+- Public review pages support Azerbaijani, Russian, and English. Customers
+  can choose Google regardless of their star rating.
+- Apply backend Alembic migrations through revision `0007` to persist
+  business feedback reasons.

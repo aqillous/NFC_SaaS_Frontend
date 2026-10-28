@@ -1,250 +1,545 @@
-import { useEffect, useMemo, useState } from 'react'
-import { useParams } from 'react-router-dom'
-import { Star, CheckCircle2, Heart, AlertCircle, Loader2, ShieldCheck } from 'lucide-react'
-import * as api from '../lib/api'
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import {
+  AlertCircle,
+  ArrowLeft,
+  CheckCircle2,
+  ExternalLink,
+  Loader2,
+  MessageSquareText,
+  Star,
+} from "lucide-react";
+import * as api from "../lib/api";
+import rateUpLogo from "../images/RateUp_logo.png";
 
-const CATEGORIES = [
-  { key: 'quality', label: 'Quality', hint: 'Food & products' },
-  { key: 'service', label: 'Service', hint: 'Staff & hospitality' },
-  { key: 'taste', label: 'Taste', hint: 'Flavor & freshness' },
-]
+const LANGUAGES = ["az", "ru", "en"];
+const REASONS = ["service_speed", "staff_attitude", "product_quality"];
+
+const COPY = {
+  az: {
+    question: "Xidmətimizdən razı qaldınız?",
+    intro: "Qiymətləndirməniz xidmətimizi daha da yaxşılaşdırmağa kömək edir.",
+    ratePrompt: "Ulduz sayını seçin",
+    oneStar: "1 ulduz",
+    stars: "ulduz",
+    googleChoice: "Google-da rəy paylaş",
+    businessChoice: "Bizneslə paylaş",
+    businessTitle: "Nəyi yaxşılaşdıra bilərik?",
+    businessIntro: "Uyğun olan bütün səbəbləri seçin. İstəsəniz əlavə şərh də yaza bilərsiniz.",
+    reasons: {
+      service_speed: "Xidmətin sürəti.",
+      staff_attitude: "İşçi heyətinin münasibəti.",
+      product_quality: "Məhsulun və ya xidmətin keyfiyyəti.",
+    },
+    commentLabel: "Əlavə şərh",
+    commentPlaceholder: "Fikirlərinizi bizimlə bölüşün…",
+    send: "Göndər",
+    sending: "Göndərilir…",
+    chooseReason: "Davam etmək üçün ən azı bir səbəb seçin.",
+    thankTitle: "Rəyinizə görə təşəkkürlər!",
+    thankMessage: "Rəyiniz bizim üçün önəmlidir.",
+    keepReview: "Rəyiniz bizimlə qalsın",
+    googleReview: "Rəyinizi Google-da paylaşın",
+    keptPrivate: "Rəyiniz bizneslə paylaşıldı və Google-a yönləndirilməyəcək.",
+    failed: "Rəyinizi göndərmək mümkün olmadı. Yenidən cəhd edin.",
+    googleUnavailable: "Google rəy səhifəsi hazırda əlçatan deyil.",
+    loadFailed: "Rəy səhifəsini yükləmək mümkün olmadı.",
+    notFound: "Bu rəy linki tapılmadı.",
+    unavailable: "Bu rəy linki hazırda aktiv deyil.",
+    loading: "Səhifə yüklənir…",
+    language: "Dil",
+  },
+  ru: {
+    question: "Вам понравилось наше обслуживание?",
+    intro: "Ваша оценка поможет нам стать лучше.",
+    ratePrompt: "Выберите количество звёзд",
+    oneStar: "1 звезда",
+    stars: "звёзд",
+    googleChoice: "Оставить отзыв в Google",
+    businessChoice: "Поделиться с компанией",
+    businessTitle: "Что нам стоит улучшить?",
+    businessIntro: "Выберите все подходящие причины. При желании оставьте комментарий.",
+    reasons: {
+      service_speed: "Скорость обслуживания.",
+      staff_attitude: "Отношение сотрудников.",
+      product_quality: "Качество товара или услуги.",
+    },
+    commentLabel: "Дополнительный комментарий",
+    commentPlaceholder: "Поделитесь своими мыслями…",
+    send: "Отправить",
+    sending: "Отправка…",
+    chooseReason: "Выберите хотя бы одну причину.",
+    thankTitle: "Спасибо за ваш отзыв!",
+    thankMessage: "Ваше мнение важно для нас.",
+    keepReview: "Оставить отзыв у нас",
+    googleReview: "Поделиться отзывом в Google",
+    keptPrivate: "Отзыв отправлен компании и не будет опубликован в Google.",
+    failed: "Не удалось отправить отзыв. Попробуйте ещё раз.",
+    googleUnavailable: "Страница отзывов Google сейчас недоступна.",
+    loadFailed: "Не удалось загрузить страницу отзывов.",
+    notFound: "Ссылка на отзыв не найдена.",
+    unavailable: "Эта ссылка на отзыв сейчас не активна.",
+    loading: "Загрузка страницы…",
+    language: "Язык",
+  },
+  en: {
+    question: "Were you satisfied with our service?",
+    intro: "Your rating helps us make our service even better.",
+    ratePrompt: "Choose a star rating",
+    oneStar: "1 star",
+    stars: "stars",
+    googleChoice: "Share a Google review",
+    businessChoice: "Share with the business",
+    businessTitle: "What could we improve?",
+    businessIntro: "Select all that apply. You can also leave an additional comment.",
+    reasons: {
+      service_speed: "Service speed.",
+      staff_attitude: "Staff attitude.",
+      product_quality: "Product or service quality.",
+    },
+    commentLabel: "Additional comment",
+    commentPlaceholder: "Tell us what you think…",
+    send: "Send",
+    sending: "Sending…",
+    chooseReason: "Select at least one reason to continue.",
+    thankTitle: "Thank you for your feedback!",
+    thankMessage: "Your feedback is important to us.",
+    keepReview: "Keep your review with us",
+    googleReview: "Share your review on Google",
+    keptPrivate: "Your feedback was shared with the business and won't be sent to Google.",
+    failed: "We couldn't send your feedback. Please try again.",
+    googleUnavailable: "The Google review page is unavailable right now.",
+    loadFailed: "We couldn't load this review page.",
+    notFound: "This review link could not be found.",
+    unavailable: "This review link is currently unavailable.",
+    loading: "Loading your page…",
+    language: "Language",
+  },
+};
 
 export default function PublicReview() {
-  const { slug } = useParams()
-  const [entity, setEntity] = useState(null)
-  const [googleUrl, setGoogleUrl] = useState('')
-  const [values, setValues] = useState({ quality: 0, service: 0, taste: 0 })
-  const [comment, setComment] = useState('')
-  const [loading, setLoading] = useState(true)
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState('')
-  const [result, setResult] = useState(null)
+  const { slug } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isBusinessPage = location.pathname.endsWith("/business");
+  const routeRating = Number(
+    location.state?.rating || new URLSearchParams(location.search).get("rating") || 0,
+  );
+  const [language, setLanguage] = useState(
+    () => {
+      const savedLanguage = localStorage.getItem("rateup_public_language");
+      return LANGUAGES.includes(savedLanguage) ? savedLanguage : "az";
+    },
+  );
+  const [entity, setEntity] = useState(null);
+  const [googleUrl, setGoogleUrl] = useState("");
+  const [rating, setRating] = useState(routeRating);
+  const [reasons, setReasons] = useState([]);
+  const [comment, setComment] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [introFinished, setIntroFinished] = useState(isBusinessPage);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [complete, setComplete] = useState(false);
+  const [keptPrivate, setKeptPrivate] = useState(false);
+  const t = COPY[language] || COPY.az;
 
   useEffect(() => {
-    let active = true
+    localStorage.setItem("rateup_public_language", language);
+  }, [language]);
+
+  useEffect(() => {
+    if (isBusinessPage) {
+      setIntroFinished(true);
+      return undefined;
+    }
+
+    setIntroFinished(false);
+    const timer = window.setTimeout(() => setIntroFinished(true), 1000);
+    return () => window.clearTimeout(timer);
+  }, [slug]);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setEntity(null);
+    setGoogleUrl("");
+    setError("");
+
     api.getPublicReview(slug)
       .then(({ data }) => {
-        if (!active) return
-        setEntity(data.entity)
-        setGoogleUrl(data.google_review_url || '')
+        if (!active) return;
+        setEntity(data.entity);
+        setGoogleUrl(data.google_review_url || "");
       })
       .catch((err) => {
-        if (!active) return
-        if (err.response?.status === 404) setError('This review link could not be found.')
-        else if (err.response?.status === 403) setError('This review link is currently unavailable.')
-        else setError('We could not load this review page. Please try again.')
+        if (!active) return;
+        setError(
+          err.response?.status === 404
+            ? "notFound"
+            : err.response?.status === 403
+              ? "unavailable"
+              : "loadFailed",
+        );
       })
-      .finally(() => active && setLoading(false))
-    return () => { active = false }
-  }, [slug])
+      .finally(() => active && setLoading(false));
 
-  const total = useMemo(() => {
-    if (!values.quality || !values.service || !values.taste) return 0
-    return Number(((values.quality + values.service + values.taste) / 3).toFixed(2))
-  }, [values])
+    return () => {
+      active = false;
+    };
+  }, [slug]);
 
-  const complete = values.quality > 0 && values.service > 0 && values.taste > 0
-
-  const submit = async (event) => {
-    event.preventDefault()
-    if (!complete || submitting) return
-    setSubmitting(true)
-    setError('')
-
-    try {
-      const { data } = await api.submitFeedback(slug, {
-        quality: values.quality,
-        service: values.service,
-        taste: values.taste,
-        comment: comment.trim() || null,
-      })
-
-      setResult({
-        score: Number(data.feedback?.overall_score ?? total),
-        shouldRedirect: Number(data.feedback?.overall_score ?? total) > 4,
-      })
-
-      // IMPORTANT: the submission is saved by the API before this line runs.
-      // The frontend, not the backend, owns the Google redirect decision.
-      if (Number(data.feedback?.overall_score ?? total) > 4 && (data.google_review_url || googleUrl)) {
-        window.setTimeout(() => {
-          window.location.assign(data.google_review_url || googleUrl)
-        }, 650)
-      }
-    } catch (err) {
-      setError(err.response?.data?.detail || 'We could not save your feedback. Please try again.')
-    } finally {
-      setSubmitting(false)
+  useEffect(() => {
+    if (isBusinessPage && (routeRating < 1 || routeRating > 5)) {
+      navigate(`/r/${slug}`, { replace: true });
+    } else if (routeRating >= 1 && routeRating <= 5) {
+      setRating(routeRating);
     }
+  }, [isBusinessPage, navigate, routeRating, slug]);
+
+  const chooseGoogle = async () => {
+    if (!googleUrl) {
+      setError("googleUnavailable");
+      return;
+    }
+
+    setSubmitting(true);
+    setError("");
+    try {
+      await api.submitFeedback(slug, {
+        quality: rating,
+        service: rating,
+        taste: rating,
+        comment: null,
+        reasons: [],
+        redirected_to_google: true,
+      });
+      window.location.assign(googleUrl);
+    } catch (err) {
+      setError(apiErrorMessage(err, t.failed));
+      setSubmitting(false);
+    }
+  };
+
+  const chooseBusiness = () => {
+    if (!rating) return;
+    navigate(`/r/${slug}/business?rating=${rating}`, { state: { rating } });
+  };
+
+  const submitBusinessFeedback = async (event) => {
+    event.preventDefault();
+    if (submitting) return;
+    if (reasons.length === 0) {
+      setError(t.chooseReason);
+      return;
+    }
+
+    setSubmitting(true);
+    setError("");
+    try {
+      await api.submitFeedback(slug, {
+        quality: rating,
+        service: rating,
+        taste: rating,
+        comment: comment.trim() || null,
+        reasons,
+        redirected_to_google: false,
+      });
+      setComplete(true);
+    } catch (err) {
+      setError(apiErrorMessage(err, t.failed));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const openGoogleReview = () => {
+    if (!googleUrl) {
+      setError("googleUnavailable");
+      return;
+    }
+    window.location.assign(googleUrl);
+  };
+
+  if (!introFinished || loading) {
+    return (
+      <PublicShell language={language} setLanguage={setLanguage} t={t}>
+        {!introFinished ? (
+          <div className="rateup-intro mx-auto flex min-h-[65vh] max-w-sm items-center justify-center">
+            <img src={rateUpLogo} alt="RateUp" className="w-56 max-w-[75vw] object-contain" />
+          </div>
+        ) : (
+          <LoadingState message={t.loading} />
+        )}
+      </PublicShell>
+    );
   }
 
-  if (loading) return <PublicShell><LoadingState /></PublicShell>
-  if (error && !entity) return <PublicShell><UnavailableState message={error} /></PublicShell>
-  if (result) return (
-    <PublicShell>
-      <ThankYou score={result.score} redirecting={result.shouldRedirect} />
-    </PublicShell>
-  )
+  if (!entity) {
+    return (
+      <PublicShell language={language} setLanguage={setLanguage} t={t}>
+        <UnavailableState message={t[error] || t.loadFailed} />
+      </PublicShell>
+    );
+  }
 
-  return (
-    <PublicShell>
-      <div className="mx-auto w-full max-w-lg">
-        <div className="mb-5 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-ink-900 text-white shadow-panel">
-            <Heart size={25} fill="currentColor" />
-          </div>
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-signal-600">Quick feedback</p>
-          <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight text-ink-900 sm:text-4xl">
-            How was your experience?
-          </h1>
-          <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-ink-400">
-            Your feedback helps <span className="font-semibold text-ink-700">{entity?.name}</span> improve.
-            It only takes a few seconds.
-          </p>
-        </div>
+  if (complete) {
+    return (
+      <PublicShell language={language} setLanguage={setLanguage} t={t}>
+        <ThankYou
+          t={t}
+          googleUrl={googleUrl}
+          keptPrivate={keptPrivate}
+          onKeepPrivate={() => setKeptPrivate(true)}
+          onGoogle={openGoogleReview}
+          error={error}
+        />
+      </PublicShell>
+    );
+  }
 
-        <form onSubmit={submit} className="rounded-3xl border border-ink-100 bg-white p-4 shadow-panel sm:p-6">
-          <div className="space-y-2">
-            {CATEGORIES.map((category) => (
-              <RatingRow
-                key={category.key}
-                category={category}
-                value={values[category.key]}
-                onChange={(value) => setValues((current) => ({ ...current, [category.key]: value }))}
-              />
-            ))}
-          </div>
-
-          <div className="my-5 flex items-center justify-between rounded-2xl bg-ink-50 px-4 py-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-ink-400">Overall score</p>
-              <p className="text-xs text-ink-300">{complete ? 'Average of your 3 ratings' : 'Rate all 3 categories'}</p>
+  if (isBusinessPage) {
+    return (
+      <PublicShell language={language} setLanguage={setLanguage} t={t}>
+        <section className="mx-auto w-full max-w-lg rounded-3xl border border-ink-100 bg-white p-5 shadow-panel sm:p-8">
+          <button
+            type="button"
+            onClick={() => navigate(`/r/${slug}`)}
+            className="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-ink-500 hover:text-ink-900"
+          >
+            <ArrowLeft size={16} /> {t.question}
+          </button>
+          <div className="mb-6">
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-signal-500/10 text-signal-600">
+              <MessageSquareText size={23} />
             </div>
-            <div className="flex items-center gap-1.5">
-              <Star size={21} className={total ? 'fill-amber-500 text-amber-500' : 'text-ink-200'} />
-              <span className="font-display text-2xl font-semibold text-ink-900">{total ? total.toFixed(2) : '—'}</span>
-              <span className="text-sm text-ink-300">/ 5</span>
-            </div>
+            <p className="text-sm font-semibold text-signal-600">{entity.name}</p>
+            <h1 className="mt-1 font-display text-2xl font-semibold tracking-tight text-ink-900 sm:text-3xl">
+              {t.businessTitle}
+            </h1>
+            <p className="mt-2 text-sm leading-6 text-ink-400">{t.businessIntro}</p>
           </div>
 
-          <div>
-            <label htmlFor="comment" className="field-label">Anything else? <span className="font-normal text-ink-300">(optional)</span></label>
+          <form onSubmit={submitBusinessFeedback}>
+            <fieldset className="space-y-3">
+              <legend className="sr-only">{t.businessTitle}</legend>
+              {REASONS.map((reason) => {
+                const checked = reasons.includes(reason);
+                return (
+                  <label
+                    key={reason}
+                    className={`flex min-h-14 cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3 text-sm font-medium transition ${
+                      checked
+                        ? "border-signal-500 bg-signal-500/5 text-ink-900"
+                        : "border-ink-100 text-ink-700 hover:border-ink-200"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => {
+                        setError("");
+                        setReasons((current) =>
+                          checked
+                            ? current.filter((item) => item !== reason)
+                            : [...current, reason],
+                        );
+                      }}
+                      className="h-4 w-4 accent-signal-600"
+                    />
+                    {t.reasons[reason]}
+                  </label>
+                );
+              })}
+            </fieldset>
+
+            <label htmlFor="feedback-comment" className="field-label mt-5">
+              {t.commentLabel}
+            </label>
             <textarea
-              id="comment"
-              className="input-field min-h-28 resize-none"
+              id="feedback-comment"
+              className="input-field min-h-28 resize-y"
               maxLength={2000}
               value={comment}
               onChange={(event) => setComment(event.target.value)}
-              placeholder="Tell us what went well or what we could improve…"
+              placeholder={t.commentPlaceholder}
             />
-            <div className="mt-1 text-right text-[11px] text-ink-300">{comment.length}/2000</div>
-          </div>
+            <p className="mt-1 text-right text-xs text-ink-300">{comment.length}/2000</p>
 
-          {error && (
-            <div className="mt-4 flex gap-2 rounded-xl bg-rust-500/5 p-3 text-sm text-rust-500">
-              <AlertCircle size={17} className="mt-0.5 shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
+            {error && <InlineError message={error === "googleUnavailable" ? t.googleUnavailable : error} />}
 
-          <button
-            type="submit"
-            disabled={!complete || submitting}
-            className="mt-5 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-ink-900 px-5 text-sm font-bold text-white transition hover:bg-ink-800 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {submitting ? <><Loader2 size={17} className="animate-spin" /> Saving feedback…</> : 'Submit feedback'}
-          </button>
-
-          <div className="mt-4 flex items-center justify-center gap-1.5 text-[11px] text-ink-300">
-            <ShieldCheck size={14} /> Your feedback is securely recorded
-          </div>
-        </form>
-
-        <p className="mt-5 text-center text-[11px] leading-5 text-ink-300">
-          Your ratings are saved first. If your overall score is above 4, you’ll be invited to continue to Google.
-        </p>
-      </div>
-    </PublicShell>
-  )
-}
-
-function RatingRow({ category, value, onChange }) {
-  return (
-    <div className="rounded-2xl border border-ink-100 p-4 transition focus-within:border-signal-500/40">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div>
-          <p className="text-sm font-bold text-ink-900">{category.label}</p>
-          <p className="text-xs text-ink-300">{category.hint}</p>
-        </div>
-        <span className={`min-w-7 text-right text-sm font-bold ${value ? 'text-ink-900' : 'text-ink-300'}`}>
-          {value || '—'}
-        </span>
-      </div>
-      <div className="flex items-center justify-between gap-1 sm:justify-start sm:gap-2">
-        {[1, 2, 3, 4, 5].map((star) => {
-          const active = star <= value
-          return (
             <button
-              key={star}
-              type="button"
-              aria-label={`${star} out of 5 for ${category.label}`}
-              aria-pressed={active}
-              onClick={() => onChange(star)}
-              className="flex h-11 w-11 items-center justify-center rounded-xl text-ink-200 transition hover:bg-amber-500/10 hover:text-amber-500 sm:h-10 sm:w-12"
+              type="submit"
+              disabled={submitting}
+              className="mt-5 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-signal-600 px-5 text-sm font-bold text-white transition hover:bg-signal-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <Star size={27} strokeWidth={1.7} className={active ? 'fill-amber-500 text-amber-500' : ''} />
+              {submitting ? <><Loader2 size={17} className="animate-spin" />{t.sending}</> : t.send}
             </button>
-          )
-        })}
-      </div>
-    </div>
-  )
+          </form>
+        </section>
+      </PublicShell>
+    );
+  }
+
+  return (
+    <PublicShell language={language} setLanguage={setLanguage} t={t}>
+      <section className="mx-auto w-full max-w-lg rounded-3xl border border-ink-100 bg-white p-5 text-center shadow-panel sm:p-8">
+        <img src={rateUpLogo} alt="RateUp" className="mx-auto mb-6 h-10 max-w-36 object-contain" />
+        <p className="text-sm font-semibold text-signal-600">{entity.name}</p>
+        <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight text-ink-900 sm:text-4xl">
+          {t.question}
+        </h1>
+        <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-ink-400">{t.intro}</p>
+
+        <fieldset className="mt-7">
+          <legend className="mb-3 w-full text-sm font-semibold text-ink-700">{t.ratePrompt}</legend>
+          <div className="flex items-center justify-center gap-1 sm:gap-2">
+            {[1, 2, 3, 4, 5].map((value) => (
+              <button
+                key={value}
+                type="button"
+                aria-label={value === 1 ? t.oneStar : `${value} ${t.stars}`}
+                aria-pressed={rating === value}
+                onClick={() => {
+                  setRating(value);
+                  setError("");
+                }}
+                className="flex h-12 w-12 items-center justify-center rounded-xl transition hover:bg-amber-500/10 sm:h-14 sm:w-14"
+              >
+                <Star
+                  size={32}
+                  strokeWidth={1.7}
+                  className={value <= rating ? "fill-amber-400 text-amber-400" : "text-ink-200"}
+                />
+              </button>
+            ))}
+          </div>
+        </fieldset>
+
+        {rating > 0 && (
+          <div className="mt-7 space-y-3">
+            <button
+              type="button"
+              onClick={chooseGoogle}
+              disabled={submitting}
+              className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-ink-900 px-5 text-sm font-bold text-white transition hover:bg-ink-800 disabled:opacity-60"
+            >
+              {submitting ? <Loader2 size={17} className="animate-spin" /> : <ExternalLink size={17} />}
+              {t.googleChoice}
+            </button>
+            <button
+              type="button"
+              onClick={chooseBusiness}
+              className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-ink-100 bg-white px-5 text-sm font-bold text-ink-800 transition hover:bg-ink-50"
+            >
+              <MessageSquareText size={17} />
+              {t.businessChoice}
+            </button>
+          </div>
+        )}
+
+        {error && <InlineError message={error === "googleUnavailable" ? t.googleUnavailable : error} />}
+      </section>
+    </PublicShell>
+  );
 }
 
-function PublicShell({ children }) {
+function PublicShell({ children, language, setLanguage, t }) {
   return (
-    <main className="min-h-[100dvh] bg-[radial-gradient(circle_at_top,_#ffffff_0,_#f3f6f8_58%,_#e9eef1_100%)] px-4 py-6 sm:flex sm:items-center sm:justify-center sm:py-10">
-      <div className="w-full">{children}</div>
+    <main className="min-h-[100dvh] bg-[radial-gradient(circle_at_top,_#ffffff_0,_#f3f6f8_58%,_#e9eef1_100%)] px-4 py-5 sm:py-8">
+      <div className="mx-auto flex w-full max-w-lg justify-end">
+        <label className="flex items-center gap-2 text-xs font-medium text-ink-400">
+          {t.language}
+          <select
+            aria-label={t.language}
+            className="rounded-lg border border-ink-100 bg-white px-2 py-1.5 text-xs text-ink-700"
+            value={language}
+            onChange={(event) => setLanguage(event.target.value)}
+          >
+            {LANGUAGES.map((code) => (
+              <option key={code} value={code}>{code.toUpperCase()}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <div className="flex min-h-[calc(100dvh-4rem)] items-center justify-center py-4">
+        <div className="w-full">{children}</div>
+      </div>
     </main>
-  )
+  );
 }
 
-function ThankYou({ score, redirecting }) {
+function ThankYou({ t, googleUrl, keptPrivate, onKeepPrivate, onGoogle, error }) {
   return (
-    <div className="mx-auto max-w-md rounded-3xl border border-ink-100 bg-white p-7 text-center shadow-panel sm:p-9">
+    <section className="mx-auto w-full max-w-md rounded-3xl border border-ink-100 bg-white p-6 text-center shadow-panel sm:p-9">
       <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-signal-500/10 text-signal-600">
-        {redirecting ? <Loader2 size={30} className="animate-spin" /> : <CheckCircle2 size={30} />}
+        <CheckCircle2 size={30} />
       </div>
-      <p className="mt-5 text-xs font-bold uppercase tracking-[0.16em] text-signal-600">
-        {redirecting ? 'One more step' : 'Feedback received'}
-      </p>
-      <h1 className="mt-2 font-display text-3xl font-semibold text-ink-900">
-        {redirecting ? 'Thank you!' : 'Thanks for your feedback.'}
+      <h1 className="mt-5 font-display text-2xl font-semibold text-ink-900 sm:text-3xl">
+        {t.thankTitle}
       </h1>
-      <p className="mt-2 text-sm leading-6 text-ink-400">
-        Your overall score was <strong className="text-ink-700">{score.toFixed(2)} / 5</strong>.
-        {redirecting ? ' Opening Google so you can share your experience there.' : ' Your comments have been saved.'}
-      </p>
-      {!redirecting && <div className="mt-5 rounded-2xl bg-ink-50 p-4 text-xs leading-5 text-ink-400">We appreciate you taking the time to help us improve.</div>}
-    </div>
-  )
+      <p className="mt-2 text-sm leading-6 text-ink-400">{t.thankMessage}</p>
+      <div className="mt-7 grid gap-3">
+        <button
+          type="button"
+          onClick={onKeepPrivate}
+          className="flex min-h-12 w-full items-center justify-center rounded-2xl bg-signal-600 px-5 text-sm font-bold text-white transition hover:bg-signal-700"
+        >
+          {t.keepReview}
+        </button>
+        <button
+          type="button"
+          disabled={!googleUrl}
+          onClick={onGoogle}
+          className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-ink-100 bg-white px-5 text-sm font-bold text-ink-800 transition hover:bg-ink-50 disabled:opacity-50"
+        >
+          <ExternalLink size={16} />
+          {t.googleReview}
+        </button>
+      </div>
+      {keptPrivate && <p className="mt-4 text-sm text-signal-700">{t.keptPrivate}</p>}
+      {error && <InlineError message={error === "googleUnavailable" ? t.googleUnavailable : error} />}
+    </section>
+  );
 }
 
-function LoadingState() {
+function InlineError({ message }) {
+  return (
+    <div role="alert" className="mt-4 flex items-start gap-2 rounded-xl bg-rust-500/5 p-3 text-left text-sm text-rust-500">
+      <AlertCircle size={17} className="mt-0.5 shrink-0" />
+      <span>{message}</span>
+    </div>
+  );
+}
+
+function apiErrorMessage(error, fallback) {
+  const detail = error.response?.data?.detail;
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) {
+    const messages = detail
+      .map((item) => item?.msg)
+      .filter((message) => typeof message === "string");
+    if (messages.length) return messages.join(". ");
+  }
+  return fallback;
+}
+
+function LoadingState({ message }) {
   return (
     <div className="mx-auto max-w-md rounded-3xl border border-ink-100 bg-white p-10 text-center shadow-panel">
       <Loader2 size={28} className="mx-auto animate-spin text-signal-500" />
-      <p className="mt-4 text-sm font-medium text-ink-600">Loading your review page…</p>
+      <p className="mt-4 text-sm font-medium text-ink-600">{message}</p>
     </div>
-  )
+  );
 }
 
 function UnavailableState({ message }) {
   return (
     <div className="mx-auto max-w-md rounded-3xl border border-ink-100 bg-white p-8 text-center shadow-panel">
-      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-ink-50 text-ink-500"><AlertCircle size={26} /></div>
-      <h1 className="mt-5 font-display text-2xl font-semibold text-ink-900">Review link unavailable</h1>
-      <p className="mt-2 text-sm leading-6 text-ink-400">{message}</p>
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-ink-50 text-ink-500">
+        <AlertCircle size={26} />
+      </div>
+      <p className="mt-5 text-sm leading-6 text-ink-400">{message}</p>
     </div>
-  )
+  );
 }

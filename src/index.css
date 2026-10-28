@@ -62,3 +62,31 @@
   .panel { border-radius: 1.1rem; }
   .btn-primary, .btn-secondary { width: 100%; }
 }
+
+.rateup-intro img {
+  animation: rateup-intro 1s ease-in-out both;
+}
+
+@keyframes rateup-intro {
+  0% {
+    opacity: 0;
+    transform: scale(0.88);
+  }
+  35% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+  70% {
+    transform: scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rateup-intro img {
+    animation-duration: 1ms;
+  }
+}

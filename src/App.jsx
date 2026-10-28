@@ -41,6 +41,8 @@ export default function App() {
 
         <Route path="/login" element={<Login />} />
 
+        <Route path="/r/:slug/business" element={<PublicReview />} />
+
         <Route path="/r/:slug" element={<PublicReview />} />
 
         <Route
