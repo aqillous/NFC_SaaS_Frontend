@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext.jsx";
-import rateUpLogo from "../images/RateUP_logo.png";
+import rateUpLogo from "../images/RateUp_logo.png";
 
 export default function Login() {
   const { signIn } = useAuth();
