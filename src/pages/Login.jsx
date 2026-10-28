@@ -37,11 +37,13 @@ export default function Login() {
     <div className="flex min-h-screen items-center justify-center bg-ink-50 px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center text-center">
-          <img
-            src={rateUpLogo}
-            alt="Rate Up"
-            className="mb-3 h-16 w-16 object-contain"
-          />
+          <div className="mb-4 flex h-32 w-32 items-center justify-center overflow-hidden rounded-2xl bg-black">
+            <img
+              src={rateUpLogo}
+              alt="Rate Up"
+              className="h-full w-full object-contain"
+            />
+          </div>
           <h1 className="font-display text-2xl font-semibold text-ink-900">
             Rate UP Admin
           </h1>
