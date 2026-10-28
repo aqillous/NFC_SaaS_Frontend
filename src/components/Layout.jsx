@@ -14,26 +14,28 @@ import {
 import { useState } from "react";
 
 import { useAuth } from "../context/AuthContext.jsx";
+import { useDashboardLanguage } from "../context/DashboardLanguageContext.jsx";
+import { DASHBOARD_COPY } from "../lib/dashboardTranslations.js";
 
 const ADMIN_NAV = [
   {
     to: "/dashboard",
-    label: "Dashboard",
+    label: "dashboard",
     icon: LayoutDashboard,
   },
   {
     to: "/entities",
-    label: "Entities",
+    label: "entities",
     icon: Building2,
   },
   {
     to: "/subscriptions",
-    label: "Subscriptions",
+    label: "subscriptions",
     icon: CreditCard,
   },
   {
     to: "/users",
-    label: "Users",
+    label: "users",
     icon: UsersIcon,
   },
 ];
@@ -41,7 +43,7 @@ const ADMIN_NAV = [
 const RESTAURANT_NAV = [
   {
     to: "/dashboard",
-    label: "Dashboard",
+    label: "dashboard",
     icon: LayoutDashboard,
   },
 ];
@@ -50,6 +52,9 @@ export default function Layout({ children }) {
   const { user, signOut } = useAuth();
 
   const navigate = useNavigate();
+
+  const { language } = useDashboardLanguage();
+  const t = DASHBOARD_COPY[language];
 
   const [open, setOpen] = useState(false);
 
@@ -77,7 +82,7 @@ export default function Layout({ children }) {
         >
           <Icon size={18} strokeWidth={2} />
 
-          {label}
+          {t[label]}
         </NavLink>
       ))}
     </nav>
@@ -86,13 +91,13 @@ export default function Layout({ children }) {
   return (
     <div className="min-h-screen bg-ink-50">
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-ink-100 bg-white md:flex">
-        <Brand />
+        <Brand t={t} />
 
         <div className="flex-1">
           <NavItems />
         </div>
 
-        <Account user={user} onSignOut={handleSignOut} />
+        <Account user={user} onSignOut={handleSignOut} t={t} />
       </aside>
 
       {open && (
@@ -108,12 +113,12 @@ export default function Layout({ children }) {
         }`}
       >
         <div className="flex items-center justify-between">
-          <Brand />
+          <Brand t={t} />
 
           <button
             className="icon-btn mr-3"
             onClick={() => setOpen(false)}
-            aria-label="Close menu"
+            aria-label={t.closeMenu}
           >
             <X size={19} />
           </button>
@@ -123,7 +128,7 @@ export default function Layout({ children }) {
           <NavItems />
         </div>
 
-        <Account user={user} onSignOut={handleSignOut} />
+        <Account user={user} onSignOut={handleSignOut} t={t} />
       </aside>
 
       <main className="min-h-screen md:ml-64">
@@ -131,7 +136,7 @@ export default function Layout({ children }) {
           <button
             className="icon-btn"
             onClick={() => setOpen(true)}
-            aria-label="Open menu"
+            aria-label={t.openMenu}
           >
             <Menu size={20} />
           </button>
@@ -149,7 +154,7 @@ export default function Layout({ children }) {
   );
 }
 
-function Brand() {
+function Brand({ t }) {
   return (
     <div className="flex h-16 items-center gap-2.5 border-b border-ink-100 px-5">
       <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-ink-900 text-white">
@@ -162,14 +167,14 @@ function Brand() {
         </p>
 
         <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-300">
-          Review platform
+          {t.reviewPlatform}
         </p>
       </div>
     </div>
   );
 }
 
-function Account({ user, onSignOut }) {
+function Account({ user, onSignOut, t }) {
   return (
     <div className="border-t border-ink-100 p-3">
       <div className="flex items-center gap-3 rounded-xl bg-ink-50 px-3 py-3">
@@ -183,15 +188,15 @@ function Account({ user, onSignOut }) {
           </p>
 
           <p className="text-xs text-ink-400">
-            {user?.is_superuser ? "Platform admin" : "Restaurant account"}
+            {user?.is_superuser ? t.platformAdmin : t.businessAccount}
           </p>
         </div>
 
         <button
           onClick={onSignOut}
           className="icon-btn"
-          title="Sign out"
-          aria-label="Sign out"
+          title={t.signOut}
+          aria-label={t.signOut}
         >
           <LogOut size={16} />
         </button>

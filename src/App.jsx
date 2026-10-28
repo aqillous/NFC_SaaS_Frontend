@@ -4,6 +4,7 @@ import { Toaster } from "react-hot-toast";
 
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import Layout from "./components/Layout.jsx";
+import { DashboardLanguageProvider } from "./context/DashboardLanguageContext.jsx";
 
 import Login from "./pages/Login.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
@@ -16,7 +17,9 @@ import PublicReview from "./pages/PublicReview.jsx";
 function Protected({ children }) {
   return (
     <ProtectedRoute>
-      <Layout>{children}</Layout>
+      <DashboardLanguageProvider>
+        <Layout>{children}</Layout>
+      </DashboardLanguageProvider>
     </ProtectedRoute>
   );
 }

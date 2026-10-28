@@ -21,18 +21,30 @@ import toast from "react-hot-toast";
 import * as api from "../lib/api";
 import StatTile from "../components/StatTile.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
+import { useDashboardLanguage } from "../context/DashboardLanguageContext.jsx";
+import {
+  DASHBOARD_COPY,
+  DATE_LOCALES,
+  LANGUAGE_OPTIONS,
+} from "../lib/dashboardTranslations.js";
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { language, setLanguage } = useDashboardLanguage();
 
-  return user?.is_superuser ? <AdminDashboard /> : <RestaurantDashboard />;
+  return user?.is_superuser ? (
+    <AdminDashboard language={language} setLanguage={setLanguage} />
+  ) : (
+    <RestaurantDashboard language={language} setLanguage={setLanguage} />
+  );
 }
 
 /* -------------------------------------------------------------------------- */
 /* ADMIN DASHBOARD                                                            */
 /* -------------------------------------------------------------------------- */
 
-function AdminDashboard() {
+function AdminDashboard({ language, setLanguage }) {
+  const t = DASHBOARD_COPY[language];
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -46,7 +58,7 @@ function AdminDashboard() {
       })
       .catch((error) => {
         toast.error(
-          error.response?.data?.detail || "Failed to load dashboard stats",
+          error.response?.data?.detail || t.loadingStats,
         );
       })
       .finally(() => {
@@ -61,13 +73,16 @@ function AdminDashboard() {
   return (
     <div>
       <PageHeading
-        title="Dashboard"
-        description="A quick overview of your review network, customer feedback and NFC activity."
+        title={t.dashboard}
+        description={t.dashboardDescription}
         action={
-          <button onClick={load} className="btn-secondary" disabled={loading}>
-            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-            Refresh
-          </button>
+          <DashboardToolbar
+            language={language}
+            setLanguage={setLanguage}
+            loading={loading}
+            onRefresh={load}
+            t={t}
+          />
         }
       />
 
@@ -78,42 +93,42 @@ function AdminDashboard() {
           {/* Entity statistics */}
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
             <StatTile
-              label="Total entities"
+              label={t.totalEntities}
               value={stats.total_entities}
               icon={Building2}
               accent="ink"
             />
 
             <StatTile
-              label="Restaurants"
+              label={t.restaurants}
               value={stats.total_restaurants}
               icon={UtensilsCrossed}
               accent="ink"
             />
 
             <StatTile
-              label="Hotels"
+              label={t.hotels}
               value={stats.total_hotels}
               icon={BedDouble}
               accent="ink"
             />
 
             <StatTile
-              label="Active subscriptions"
+              label={t.activeSubscriptions}
               value={stats.active_subscriptions}
               icon={CheckCircle2}
               accent="signal"
             />
 
             <StatTile
-              label="Expired subscriptions"
+              label={t.expiredSubscriptions}
               value={stats.expired_subscriptions}
               icon={XCircle}
               accent="rust"
             />
 
             <StatTile
-              label="Expiring soon"
+              label={t.expiringSoon}
               value={stats.expiring_soon}
               icon={AlertTriangle}
               accent="amber"
@@ -123,14 +138,14 @@ function AdminDashboard() {
           {/* NFC statistics */}
           <div className="grid grid-cols-2 gap-3">
             <StatTile
-              label="Google opens today"
+              label={t.googleOpensToday}
               value={stats.scans_today}
               icon={ExternalLink}
               accent="signal"
             />
 
             <StatTile
-              label="Google opens this month"
+              label={t.googleOpensMonth}
               value={stats.scans_this_month}
               icon={CalendarDays}
               accent="signal"
@@ -142,22 +157,22 @@ function AdminDashboard() {
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="font-display text-lg font-semibold text-ink-900">
-                  Feedback overview
+                  {t.feedbackOverview}
                 </h2>
 
                 <p className="text-xs text-ink-400">
-                  Customer feedback across all entities.
+                  {t.allBusinessFeedback}
                 </p>
               </div>
 
               <div className="rounded-full bg-signal-500/10 px-3 py-1 text-xs font-bold text-signal-600">
-                {stats.total_feedback} submissions
+                {stats.total_feedback} {t.submissions}
               </div>
             </div>
 
             <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
               <FeedbackMetric
-                label="Average rating"
+                label={t.averageRating}
                 value={`${Number(stats.average_feedback_score || 0).toFixed(
                   2,
                 )} / 5`}
@@ -165,19 +180,19 @@ function AdminDashboard() {
               />
 
               <FeedbackMetric
-                label="Google redirects"
+                label={t.googleOpens}
                 value={stats.google_redirects}
                 icon={ExternalLink}
               />
 
               <FeedbackMetric
-                label="Redirect rate"
+                label={t.redirectRate}
                 value={`${Number(stats.google_redirect_rate || 0).toFixed(1)}%`}
                 icon={TrendingUp}
               />
 
               <FeedbackMetric
-                label="This month"
+                label={t.thisMonth}
                 value={stats.feedback_this_month}
                 icon={MessageSquare}
               />
@@ -185,12 +200,12 @@ function AdminDashboard() {
 
             <div className="mt-5 grid grid-cols-2 gap-3 border-t border-ink-100 pt-4">
               <MiniStat
-                label="Feedback today"
+                label={t.feedbackToday}
                 value={stats.feedback_today ?? 0}
               />
 
               <MiniStat
-                label="Internal feedback"
+                label={t.internalFeedback}
                 value={stats.internal_feedback ?? 0}
               />
             </div>
@@ -198,8 +213,8 @@ function AdminDashboard() {
         </div>
       ) : (
         <EmptyState
-          title="Couldn't load dashboard"
-          text="Try refreshing the page."
+          title={t.dashboardLoadFailed}
+          text={t.refreshPage}
         />
       )}
     </div>
@@ -226,7 +241,8 @@ function FeedbackMetric({ label, value, icon: Icon }) {
 /* RESTAURANT DASHBOARD                                                       */
 /* -------------------------------------------------------------------------- */
 
-function RestaurantDashboard() {
+function RestaurantDashboard({ language, setLanguage }) {
+  const t = DASHBOARD_COPY[language];
   const [days, setDays] = useState(30);
   const [dashboard, setDashboard] = useState(null);
   const [feedback, setFeedback] = useState([]);
@@ -251,7 +267,7 @@ function RestaurantDashboard() {
       setFeedback(feedbackRes.data);
     } catch (error) {
       toast.error(
-        error.response?.data?.detail || "Failed to load restaurant dashboard",
+        error.response?.data?.detail || t.loadingBusiness,
       );
     } finally {
       setLoading(false);
@@ -277,13 +293,13 @@ function RestaurantDashboard() {
         item.quality,
         item.service,
         item.taste,
-        ...(item.reasons || []).map(feedbackReasonLabel),
+        ...(item.reasons || []).map((reason) => feedbackReasonLabel(reason, t)),
       ]
         .join(" ")
         .toLowerCase()
         .includes(needle),
     );
-  }, [feedback, query]);
+  }, [feedback, language, query, t]);
 
   if (loading && !dashboard) {
     return <RestaurantSkeleton />;
@@ -297,39 +313,42 @@ function RestaurantDashboard() {
   return (
     <div className="space-y-5">
       <PageHeading
-        title={dashboard?.entity_name || "Restaurant dashboard"}
-        description="See customer sentiment, feedback and Google review performance in one place."
+        title={dashboard?.entity_name || t.businessDashboard}
+        description={t.businessDescription}
         action={
-          <button onClick={load} className="btn-secondary" disabled={loading}>
-            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-            Refresh
-          </button>
+          <DashboardToolbar
+            language={language}
+            setLanguage={setLanguage}
+            loading={loading}
+            onRefresh={load}
+            t={t}
+          />
         }
       />
 
       {/* Top metrics */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <MetricCard
-          label="Average score"
+          label={t.averageScore}
           value={stats?.average_score?.toFixed(2) || "0.00"}
           suffix="/ 5"
           icon={Star}
         />
 
         <MetricCard
-          label="Feedback received"
+          label={t.feedbackReceived}
           value={stats?.total_submissions ?? 0}
           icon={MessageSquare}
         />
 
         <MetricCard
-          label="Google redirects"
+          label={t.googleOpens}
           value={stats?.google_redirects ?? 0}
           icon={TrendingUp}
         />
 
         <MetricCard
-          label="Redirect rate"
+          label={t.redirectRate}
           value={`${(stats?.google_redirect_rate ?? 0).toFixed(1)}%`}
           icon={ExternalLink}
         />
@@ -342,11 +361,11 @@ function RestaurantDashboard() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="font-display text-lg font-semibold text-ink-900">
-                Review performance
+                {t.reviewPerformance}
               </h2>
 
               <p className="text-xs text-ink-400">
-                Customer submissions over time
+                {t.submissionsOverTime}
               </p>
             </div>
 
@@ -361,7 +380,7 @@ function RestaurantDashboard() {
                       : "text-ink-400"
                   }`}
                 >
-                  {value}d
+                  {value}{t.daysSuffix}
                 </button>
               ))}
             </div>
@@ -385,13 +404,13 @@ function RestaurantDashboard() {
                             )}%`
                           : "0%",
                       }}
-                      title={`${item.submissions} submissions • ${item.google_redirects} Google opens • ${item.average_score.toFixed(2)} avg`}
+                      title={`${item.submissions} ${t.submissionsTooltip} • ${item.google_redirects} ${t.googleOpensTooltip} • ${item.average_score.toFixed(2)} ${t.averageTooltip}`}
                     />
                   </div>
 
                   <span className="mt-2 -rotate-45 origin-top-left whitespace-nowrap text-[9px] text-ink-300">
                     {new Date(`${item.date}T00:00:00`).toLocaleDateString(
-                      undefined,
+                      DATE_LOCALES[language],
                       {
                         month: "short",
                         day: "numeric",
@@ -402,7 +421,7 @@ function RestaurantDashboard() {
               ))
             ) : (
               <div className="flex w-full items-center justify-center text-sm text-ink-300">
-                No submissions in this period.
+                {t.noSubmissions}
               </div>
             )}
           </div>
@@ -413,26 +432,31 @@ function RestaurantDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="font-display text-lg font-semibold text-ink-900">
-                Overall rating
+                {t.overallRating}
               </h2>
 
-              <p className="text-xs text-ink-400">Average customer rating</p>
+              <p className="text-xs text-ink-400">
+                {t.averageCustomerRating}
+              </p>
             </div>
 
             <div className="rounded-full bg-signal-500/10 px-2.5 py-1 text-xs font-bold text-signal-600">
-              5 max
+              {t.maxRating}
             </div>
           </div>
 
           <div className="mt-6">
-            <ScoreBar label="Average rating" value={stats?.average_score || 0} />
+            <ScoreBar
+              label={t.averageRating}
+              value={stats?.average_score || 0}
+            />
           </div>
 
           <div className="mt-6 grid grid-cols-2 gap-3 border-t border-ink-100 pt-4">
-            <MiniStat label="Today" value={stats?.submissions_today ?? 0} />
+            <MiniStat label={t.today} value={stats?.submissions_today ?? 0} />
 
             <MiniStat
-              label="This month"
+              label={t.thisMonth}
               value={stats?.submissions_this_month ?? 0}
             />
           </div>
@@ -445,11 +469,11 @@ function RestaurantDashboard() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="font-display text-lg font-semibold text-ink-900">
-                Customer feedback
+                {t.customerFeedback}
               </h2>
 
               <p className="text-xs text-ink-400">
-                Every submission is stored before any Google redirect.
+                {t.feedbackStored}
               </p>
             </div>
 
@@ -461,7 +485,7 @@ function RestaurantDashboard() {
 
               <input
                 className="input-field pl-9"
-                placeholder="Search feedback…"
+                placeholder={t.searchFeedback}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
               />
@@ -470,16 +494,21 @@ function RestaurantDashboard() {
         </div>
 
         {feedbackLoading ? (
-          <div className="p-6 text-sm text-ink-300">Loading feedback…</div>
+          <div className="p-6 text-sm text-ink-300">{t.loadingFeedback}</div>
         ) : filteredFeedback.length === 0 ? (
           <EmptyState
-            title="No feedback yet"
-            text="Customer submissions will appear here automatically."
+            title={t.noFeedback}
+            text={t.feedbackWillAppear}
           />
         ) : (
           <div className="divide-y divide-ink-100">
             {filteredFeedback.map((item) => (
-              <FeedbackRow key={item.id} item={item} />
+              <FeedbackRow
+                key={item.id}
+                item={item}
+                language={language}
+                t={t}
+              />
             ))}
           </div>
         )}
@@ -488,7 +517,7 @@ function RestaurantDashboard() {
   );
 }
 
-function FeedbackRow({ item }) {
+function FeedbackRow({ item, language, t }) {
   const score = Number(item.overall_score || 0);
 
   return (
@@ -508,12 +537,12 @@ function FeedbackRow({ item }) {
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs text-ink-300">
-              {formatDate(item.created_at)}
+              {formatDate(item.created_at, language)}
             </span>
 
             {item.redirected_to_google && (
               <span className="rounded-full bg-signal-500/10 px-2 py-0.5 text-[10px] font-bold text-signal-600">
-                Google redirect
+                {t.googleRedirect}
               </span>
             )}
           </div>
@@ -531,7 +560,7 @@ function FeedbackRow({ item }) {
                   key={reason}
                   className="rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-700"
                 >
-                  {feedbackReasonLabel(reason)}
+                  {feedbackReasonLabel(reason, t)}
                 </span>
               ))}
             </div>
@@ -542,11 +571,11 @@ function FeedbackRow({ item }) {
   );
 }
 
-function feedbackReasonLabel(reason) {
+function feedbackReasonLabel(reason, t) {
   return {
-    service_speed: "Service speed",
-    staff_attitude: "Staff attitude",
-    product_quality: "Product or service quality",
+    service_speed: t.serviceSpeed,
+    staff_attitude: t.staffAttitude,
+    product_quality: t.productQuality,
   }[reason] || reason;
 }
 
@@ -573,6 +602,36 @@ function ScoreBar({ label, value }) {
           }}
         />
       </div>
+    </div>
+  );
+}
+
+function DashboardToolbar({ language, setLanguage, loading, onRefresh, t }) {
+  return (
+    <div className="flex items-center gap-2">
+      <label className="sr-only" htmlFor="dashboard-language">
+        {t.language}
+      </label>
+      <select
+        id="dashboard-language"
+        value={language}
+        onChange={(event) => setLanguage(event.target.value)}
+        className="h-10 rounded-xl border border-ink-100 bg-white px-2.5 text-sm font-semibold text-ink-700 outline-none transition focus:border-signal-500"
+      >
+        {LANGUAGE_OPTIONS.map(({ value, label }) => (
+          <option key={value} value={value}>
+            {label}
+          </option>
+        ))}
+      </select>
+      <button
+        onClick={onRefresh}
+        className="btn-secondary"
+        disabled={loading}
+      >
+        <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+        {t.refresh}
+      </button>
     </div>
   );
 }
@@ -657,10 +716,10 @@ function RestaurantSkeleton() {
   );
 }
 
-function formatDate(value) {
+function formatDate(value, language) {
   if (!value) return "";
 
-  return new Date(value).toLocaleString(undefined, {
+  return new Date(value).toLocaleString(DATE_LOCALES[language], {
     month: "short",
     day: "numeric",
     year: "numeric",

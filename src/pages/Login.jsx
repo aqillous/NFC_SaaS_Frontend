@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Nfc, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext.jsx";
+import rateUpLogo from "../images/RateUP_logo.png";
 
 export default function Login() {
   const { signIn } = useAuth();
@@ -36,9 +37,11 @@ export default function Login() {
     <div className="flex min-h-screen items-center justify-center bg-ink-50 px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center text-center">
-          <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-ink-900 text-white">
-            <Nfc size={22} strokeWidth={2.25} />
-          </div>
+          <img
+            src={rateUpLogo}
+            alt="Rate Up"
+            className="mb-3 h-16 w-16 object-contain"
+          />
           <h1 className="font-display text-2xl font-semibold text-ink-900">
             Rate UP Admin
           </h1>
