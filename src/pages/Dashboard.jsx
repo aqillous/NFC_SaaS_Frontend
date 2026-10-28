@@ -7,7 +7,6 @@ import {
   CheckCircle2,
   XCircle,
   AlertTriangle,
-  Radio,
   CalendarDays,
   Plus,
   Star,
@@ -124,14 +123,14 @@ function AdminDashboard() {
           {/* NFC statistics */}
           <div className="grid grid-cols-2 gap-3">
             <StatTile
-              label="NFC scans today"
+              label="Google opens today"
               value={stats.scans_today}
-              icon={Radio}
+              icon={ExternalLink}
               accent="signal"
             />
 
             <StatTile
-              label="NFC scans this month"
+              label="Google opens this month"
               value={stats.scans_this_month}
               icon={CalendarDays}
               accent="signal"
@@ -182,14 +181,6 @@ function AdminDashboard() {
                 value={stats.feedback_this_month}
                 icon={MessageSquare}
               />
-            </div>
-
-            <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <ScoreBar label="Quality" value={stats.average_quality || 0} />
-
-              <ScoreBar label="Service" value={stats.average_service || 0} />
-
-              <ScoreBar label="Taste" value={stats.average_taste || 0} />
             </div>
 
             <div className="mt-5 grid grid-cols-2 gap-3 border-t border-ink-100 pt-4">
@@ -387,12 +378,14 @@ function RestaurantDashboard() {
                     <div
                       className="w-full min-w-4 rounded-t-md bg-signal-500/80 transition group-hover:bg-signal-600"
                       style={{
-                        height: `${Math.max(
-                          5,
-                          (item.submissions / maxSubmissions) * 100,
-                        )}%`,
+                        height: item.submissions
+                          ? `${Math.max(
+                              5,
+                              (item.submissions / maxSubmissions) * 100,
+                            )}%`
+                          : "0%",
                       }}
-                      title={`${item.submissions} submissions • ${item.average_score.toFixed(2)} avg`}
+                      title={`${item.submissions} submissions • ${item.google_redirects} Google opens • ${item.average_score.toFixed(2)} avg`}
                     />
                   </div>
 
@@ -415,15 +408,15 @@ function RestaurantDashboard() {
           </div>
         </section>
 
-        {/* Category scores */}
+        {/* Overall rating */}
         <section className="panel p-4 sm:p-5">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="font-display text-lg font-semibold text-ink-900">
-                Category scores
+                Overall rating
               </h2>
 
-              <p className="text-xs text-ink-400">Average customer ratings</p>
+              <p className="text-xs text-ink-400">Average customer rating</p>
             </div>
 
             <div className="rounded-full bg-signal-500/10 px-2.5 py-1 text-xs font-bold text-signal-600">
@@ -431,12 +424,8 @@ function RestaurantDashboard() {
             </div>
           </div>
 
-          <div className="mt-6 space-y-5">
-            <ScoreBar label="Quality" value={stats?.average_quality || 0} />
-
-            <ScoreBar label="Service" value={stats?.average_service || 0} />
-
-            <ScoreBar label="Taste" value={stats?.average_taste || 0} />
+          <div className="mt-6">
+            <ScoreBar label="Average rating" value={stats?.average_score || 0} />
           </div>
 
           <div className="mt-6 grid grid-cols-2 gap-3 border-t border-ink-100 pt-4">
@@ -506,28 +495,18 @@ function FeedbackRow({ item }) {
     <article className="p-4 sm:p-5">
       <div className="flex items-start gap-3">
         <div
-          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
+          className={`flex h-10 w-14 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
             score > 4
               ? "bg-signal-500/10 text-signal-600"
               : "bg-ink-50 text-ink-600"
           }`}
         >
+          <Star size={16} className="mr-0.5 fill-current" />
           {score.toFixed(1)}
         </div>
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-0.5">
-              {[item.quality, item.service, item.taste].map((value, index) => (
-                <span
-                  key={index}
-                  title={["Quality", "Service", "Taste"][index]}
-                >
-                  <Star size={13} className="fill-current text-amber-500" />
-                </span>
-              ))}
-            </div>
-
             <span className="text-xs text-ink-300">
               {formatDate(item.created_at)}
             </span>
@@ -537,20 +516,6 @@ function FeedbackRow({ item }) {
                 Google redirect
               </span>
             )}
-          </div>
-
-          <div className="mt-2 grid grid-cols-3 gap-2 text-xs text-ink-400">
-            <span>
-              Quality <b className="text-ink-700">{item.quality}/5</b>
-            </span>
-
-            <span>
-              Service <b className="text-ink-700">{item.service}/5</b>
-            </span>
-
-            <span>
-              Taste <b className="text-ink-700">{item.taste}/5</b>
-            </span>
           </div>
 
           {item.comment && (

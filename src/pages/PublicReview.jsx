@@ -203,7 +203,7 @@ export default function PublicReview() {
       return;
     }
 
-    window.location.assign(googleUrl);
+    window.location.assign(api.getGoogleReviewRedirectUrl(slug));
   };
 
   const chooseBusiness = () => {
@@ -243,7 +243,7 @@ export default function PublicReview() {
       setError("googleUnavailable");
       return;
     }
-    window.location.assign(googleUrl);
+    window.location.assign(api.getGoogleReviewRedirectUrl(slug));
   };
 
   if (!introFinished || loading) {

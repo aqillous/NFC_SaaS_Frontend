@@ -23,6 +23,10 @@ React Router + Axios.
   reasons and an optional comment; submitted reasons appear in dashboard
   feedback and the entity feedback drawer
 
+The Google review option uses the backend's `GET /r/:slug/google` redirect to
+record a Google link open, then redirects the customer to the configured
+Google review URL. It does not submit feedback to Google.
+
 ## Setup
 
 ```bash

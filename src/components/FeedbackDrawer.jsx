@@ -209,15 +209,6 @@ function FeedbackItem({ item }) {
         </div>
 
         <div className="min-w-0 flex-1">
-          {/* Category ratings */}
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-            <Rating label="Quality" value={item.quality} />
-
-            <Rating label="Service" value={item.service} />
-
-            <Rating label="Taste" value={item.taste} />
-          </div>
-
           {/* Comment */}
           {item.comment && (
             <div className="mt-4 rounded-xl bg-ink-50 p-3.5">
@@ -271,34 +262,6 @@ function feedbackReasonLabel(reason) {
     staff_attitude: "Staff attitude",
     product_quality: "Product or service quality",
   }[reason] || reason;
-}
-
-function Rating({ label, value }) {
-  const score = Number(value || 0);
-
-  return (
-    <div>
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-medium text-ink-500">{label}</span>
-
-        <span className="text-xs font-bold text-ink-800">{score}/5</span>
-      </div>
-
-      <div className="mt-1 flex gap-0.5">
-        {Array.from({
-          length: 5,
-        }).map((_, index) => (
-          <Star
-            key={index}
-            size={13}
-            className={
-              index < score ? "fill-amber-400 text-amber-400" : "text-ink-200"
-            }
-          />
-        ))}
-      </div>
-    </div>
-  );
 }
 
 function formatDate(value) {

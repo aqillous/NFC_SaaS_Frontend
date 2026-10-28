@@ -64,6 +64,9 @@ export const getDashboardStats = () => api.get("/api/dashboard/stats");
 export const getPublicReview = (slug) =>
   api.get(`/r/${encodeURIComponent(slug)}`);
 
+export const getGoogleReviewRedirectUrl = (slug) =>
+  `${API_BASE_URL.replace(/\/+$/, "")}/r/${encodeURIComponent(slug)}/google`;
+
 export const submitFeedback = (slug, payload) =>
   api.post(`/r/${encodeURIComponent(slug)}/feedback`, payload);
 
