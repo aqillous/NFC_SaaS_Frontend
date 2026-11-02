@@ -123,6 +123,8 @@ export const createEntityUser = (entityId, payload) =>
 
 export const listUsers = () => api.get("/api/users");
 
+export const createUser = (payload) => api.post("/api/users", payload);
+
 export const resetUserPassword = (id, password) =>
   api.post(`/api/users/${id}/reset-password`, {
     password,
