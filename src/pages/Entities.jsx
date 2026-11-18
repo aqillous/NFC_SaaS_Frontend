@@ -133,7 +133,7 @@ export default function Entities() {
   const handleCopy = async (url) => {
     try {
       await navigator.clipboard.writeText(url);
-      toast.success("NFC URL copied");
+      toast.success(t.copyDone);
     } catch {
       toast.error("Could not copy automatically");
     }
@@ -226,10 +226,10 @@ export default function Entities() {
           value={statusFilter}
           onChange={(event) => setStatusFilter(event.target.value)}
         >
-          <option value="">All status</option>
-          <option value="ACTIVE">Active</option>
-          <option value="EXPIRING_SOON">Expiring soon</option>
-          <option value="EXPIRED">Expired</option>
+          <option value="">{t.allStatus}</option>
+          <option value="ACTIVE">{t.active}</option>
+          <option value="EXPIRING_SOON">{t.expiringSoon}</option>
+          <option value="EXPIRED">{t.expired}</option>
         </select>
       </div>
 
@@ -237,12 +237,19 @@ export default function Entities() {
         <p className="text-ink-400">
           {filtered.length} {language === "az" ? "biznes" : "businesses"}
         </p>
-        {selected.length > 0 && (
-          <button type="button" className="btn-secondary" onClick={exportSelected}>
-            Export CSV ({selected.length})
-          </button>
-        )}
       </div>
+
+      {selected.length > 0 && (
+        <div className="fixed bottom-4 left-1/2 z-40 flex w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 items-center gap-2 rounded-2xl border border-ink-100 bg-white p-2 shadow-panel lg:left-[calc(50%+7.5rem)]">
+          <span className="flex-1 px-2 text-sm font-semibold text-ink-700">{selected.length} {t.selected}</span>
+          <button type="button" className="btn-secondary !w-auto" onClick={exportSelected}>
+            {t.exportCsv}
+          </button>
+          <button type="button" className="btn-secondary !w-auto" onClick={() => setSelected([])}>
+            {t.clear}
+          </button>
+        </div>
+      )}
 
       {/* Desktop */}
       <div className="hidden overflow-hidden rounded-2xl border border-ink-100 bg-white shadow-subtle md:block">
@@ -266,27 +273,27 @@ export default function Entities() {
               </th>
               <th className="px-5 py-3 font-medium">
                 <button type="button" className="inline-flex items-center gap-1" onClick={() => setSort({ key: "name", direction: sort.direction === "asc" ? "desc" : "asc" })}>
-                  Business <ArrowUpDown size={12} />
+                  {t.business} <ArrowUpDown size={12} />
                 </button>
               </th>
 
               <th className="px-5 py-3 font-medium">
                 <button type="button" className="inline-flex items-center gap-1" onClick={() => setSort({ key: "type", direction: sort.direction === "asc" ? "desc" : "asc" })}>
-                  Type <ArrowUpDown size={12} />
+                  {t.type} <ArrowUpDown size={12} />
                 </button>
               </th>
 
-              <th className="px-5 py-3 font-medium">Subscription</th>
+              <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-ink-400">{t.subscription}</th>
 
               <th className="px-5 py-3 font-medium">
                 <button type="button" className="inline-flex items-center gap-1" onClick={() => setSort({ key: "ends", direction: sort.direction === "asc" ? "desc" : "asc" })}>
-                  Ends <ArrowUpDown size={12} />
+                  {t.ends} <ArrowUpDown size={12} />
                 </button>
               </th>
 
-              <th className="px-5 py-3 font-medium">NFC URL</th>
+              <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-ink-400">{t.nfcUrl}</th>
 
-              <th className="px-5 py-3 text-right font-medium">Actions</th>
+              <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-ink-400">{t.actions}</th>
             </tr>
           </thead>
 
@@ -369,7 +376,7 @@ export default function Entities() {
           paged.map((entity) => {
             const sub = subsByEntity[entity.id];
 
-            const badge = subscriptionBadgeProps(sub);
+            const badge = subscriptionBadgeProps(sub, language);
 
             return (
               <div
@@ -385,11 +392,11 @@ export default function Entities() {
                     }}
                     className="flex min-w-0 items-center gap-2 text-left"
                   >
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink-900 text-xs font-bold text-white">
+                    <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold ${avatarPalette(entity.name)}`}>
                       {entity.name?.[0]?.toUpperCase() || "B"}
                     </span>
                     <span>
-                      <span className="block truncate font-semibold text-ink-900">{entity.name}</span>
+                      <span className="block truncate font-semibold text-ink-900">{capitalizeName(entity.name)}</span>
 
                       <span className="mt-1 flex items-center gap-1.5 text-xs text-ink-400">
                         {entity.type === "RESTAURANT" ? <UtensilsCrossed size={13} /> : <BedDouble size={13} />}
@@ -483,7 +490,8 @@ function EntityTableRow({
   onDetail,
   onFeedback,
 }) {
-  const badge = subscriptionBadgeProps(sub);
+  const { language } = useDashboardLanguage();
+  const badge = subscriptionBadgeProps(sub, language);
   const navigate = useNavigate();
 
   return (
@@ -501,7 +509,7 @@ function EntityTableRow({
       </td>
       <td className="px-5 py-3.5">
         <div className="flex items-center gap-3">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink-900 text-xs font-bold text-white">
+          <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold ${avatarPalette(entity.name)}`}>
             {entity.name?.[0]?.toUpperCase() || "B"}
           </span>
           <button
@@ -511,7 +519,7 @@ function EntityTableRow({
             }}
             className="font-semibold text-ink-900 hover:text-signal-600 hover:underline"
           >
-            {entity.name}
+            {capitalizeName(entity.name)}
           </button>
         </div>
 
@@ -554,16 +562,16 @@ function EntityTableRow({
           <button
             onClick={() => onCopy(entity.nfc_url)}
             className="icon-btn"
-            title="Copy NFC URL"
-            aria-label="Copy NFC URL"
+            title={t.copyNfc}
+            aria-label={t.copyNfc}
           >
             <Copy size={14} />
           </button>
           <button
             type="button"
             className="icon-btn"
-            title="QR code TODO"
-            aria-label="QR code TODO"
+            title={t.qrTodo}
+            aria-label={t.qrTodo}
             onClick={(event) => {
               event.stopPropagation();
               toast.info("TODO: QR download needs client-side QR library");
@@ -588,6 +596,24 @@ function EntityTableRow({
       </td>
     </tr>
   );
+}
+
+function capitalizeName(value) {
+  if (!value) return "";
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function avatarPalette(value) {
+  const palette = [
+    "bg-[#E8F1FF] text-[#315C94]",
+    "bg-[#FDE8E8] text-[#914141]",
+    "bg-[#E7F4EC] text-[#356C4B]",
+    "bg-[#F3EAFE] text-[#65468A]",
+    "bg-[#FFF1D6] text-[#805A24]",
+    "bg-[#E8F4F5] text-[#356A70]",
+  ];
+  const hash = [...(value || "")].reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  return palette[hash % palette.length];
 }
 
 function relativeDateHint(value) {
