@@ -2,7 +2,7 @@ import axios from "axios";
 
 const LOCAL_API_URL = "http://localhost:8000";
 const DEPLOYED_API_URL =
-  "https://nfc-saa-s-backend-525r26zao-aqillous.vercel.app";
+  "https://nfc-saa-s-backend-1bouf0b0t-aqillous.vercel.app";
 
 export const API_BASE_URL =
   import.meta.env.VITE_API_URL ||

@@ -23,6 +23,11 @@ export default function Login() {
       const dest = location.state?.from?.pathname || "/dashboard";
       navigate(dest, { replace: true });
     } catch (err) {
+      if (!err.response) {
+        setError("Unable to reach the server. Check the backend URL and deployment settings.");
+        setSubmitting(false);
+        return;
+      }
       const detail = err.response?.data?.detail;
       setError(
         typeof detail === "string" ? detail : "Invalid email or password",
