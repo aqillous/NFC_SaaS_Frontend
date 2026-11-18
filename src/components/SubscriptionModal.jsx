@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import * as api from '../lib/api'
@@ -15,32 +15,63 @@ export default function SubscriptionModal({ open, entities, subscription, onClos
   })
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const closeRef = useRef(null)
+  const initialRef = useRef('')
+
+  useEffect(() => {
+    if (!open) return undefined
+    closeRef.current?.focus()
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') closeModal()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [open, onClose])
 
   useEffect(() => {
     if (subscription) {
-      setForm({
+      const next = {
         entity_id: subscription.entity_id,
         starts_at: toInputDate(subscription.starts_at),
         ends_at: toInputDate(subscription.ends_at),
         status: subscription.status,
-      })
+      }
+      setForm(next)
+      initialRef.current = JSON.stringify(next)
     } else {
       const today = new Date().toISOString().slice(0, 10)
       const nextYear = new Date()
       nextYear.setFullYear(nextYear.getFullYear() + 1)
-      setForm({
+      const next = {
         entity_id: entities[0]?.id || '',
         starts_at: today,
         ends_at: nextYear.toISOString().slice(0, 10),
         status: 'ACTIVE',
-      })
+      }
+      setForm(next)
+      initialRef.current = JSON.stringify(next)
     }
     setError('')
+    const snapshot = subscription
+      ? {
+          entity_id: subscription.entity_id,
+          starts_at: toInputDate(subscription.starts_at),
+          ends_at: toInputDate(subscription.ends_at),
+          status: subscription.status,
+        }
+      : null
+    if (snapshot) initialRef.current = JSON.stringify(snapshot)
   }, [subscription, entities, open])
 
   if (!open) return null
 
   const update = (field, value) => setForm((f) => ({ ...f, [field]: value }))
+  const closeModal = () => {
+    if (initialRef.current && initialRef.current !== JSON.stringify(form)) {
+      if (!window.confirm('Discard unsaved changes?')) return
+    }
+    onClose()
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -73,12 +104,17 @@ export default function SubscriptionModal({ open, entities, subscription, onClos
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-950/40 px-4">
-      <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-panel">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="subscription-modal-title"
+        className="w-full max-w-md rounded-xl bg-white p-6 shadow-panel"
+      >
         <div className="mb-5 flex items-center justify-between">
-          <h3 className="font-display text-lg font-semibold text-ink-900">
+          <h3 id="subscription-modal-title" className="font-display text-lg font-semibold text-ink-900">
             {isEdit ? 'Edit subscription' : 'New subscription'}
           </h3>
-          <button onClick={onClose} className="icon-btn">
+          <button ref={closeRef} onClick={closeModal} className="icon-btn" aria-label="Close">
             <X size={18} />
           </button>
         </div>
@@ -123,9 +159,31 @@ export default function SubscriptionModal({ open, entities, subscription, onClos
                 type="date"
                 className="input-field"
                 value={form.ends_at}
+                min={form.starts_at}
                 onChange={(e) => update('ends_at', e.target.value)}
                 required
               />
+            </div>
+          </div>
+
+          <div>
+            <p className="mb-2 text-xs font-semibold text-ink-400">Subscription length</p>
+            <div className="flex flex-wrap gap-2">
+              {[{ label: '+1 month', months: 1 }, { label: '+6 months', months: 6 }, { label: '+1 year', months: 12 }].map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  className="btn-secondary min-h-9 px-3"
+                  onClick={() => {
+                    const start = form.starts_at ? new Date(form.starts_at) : new Date();
+                    const end = new Date(start);
+                    end.setMonth(end.getMonth() + preset.months);
+                    setForm((current) => ({ ...current, starts_at: start.toISOString().slice(0, 10), ends_at: end.toISOString().slice(0, 10) }));
+                  }}
+                >
+                  {preset.label}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -143,7 +201,7 @@ export default function SubscriptionModal({ open, entities, subscription, onClos
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
-            <button type="button" className="btn-secondary" onClick={onClose}>
+            <button type="button" className="btn-secondary" onClick={closeModal}>
               Cancel
             </button>
             <button type="submit" disabled={submitting} className="btn-primary">
