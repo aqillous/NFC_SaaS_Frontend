@@ -2,10 +2,14 @@ import { useEffect, useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import * as api from '../lib/api'
+import { useDashboardLanguage } from '../context/DashboardLanguageContext.jsx'
+import { DASHBOARD_COPY } from '../lib/dashboardTranslations.js'
 
 const toInputDate = (iso) => (iso ? iso.slice(0, 10) : '')
 
 export default function SubscriptionModal({ open, entities, subscription, onClose, onSaved }) {
+  const { language } = useDashboardLanguage()
+  const t = DASHBOARD_COPY[language]
   const isEdit = !!subscription
   const [form, setForm] = useState({
     entity_id: '',
@@ -125,7 +129,7 @@ export default function SubscriptionModal({ open, entities, subscription, onClos
           )}
 
           <div>
-            <label className="field-label">Entity</label>
+            <label className="field-label">{t.business}</label>
             <select
               className="input-field"
               value={form.entity_id}
@@ -133,7 +137,7 @@ export default function SubscriptionModal({ open, entities, subscription, onClos
               disabled={isEdit}
               required
             >
-              {!isEdit && <option value="">Select an entity…</option>}
+              {!isEdit && <option value=""> {t.selectBusiness}</option>}
               {entities.map((e) => (
                 <option key={e.id} value={e.id}>
                   {e.name}
@@ -144,7 +148,7 @@ export default function SubscriptionModal({ open, entities, subscription, onClos
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="field-label">Start date</label>
+              <label className="field-label">{t.startDate}</label>
               <input
                 type="date"
                 className="input-field"
@@ -154,7 +158,7 @@ export default function SubscriptionModal({ open, entities, subscription, onClos
               />
             </div>
             <div>
-              <label className="field-label">End date</label>
+              <label className="field-label">{t.endDate}</label>
               <input
                 type="date"
                 className="input-field"
@@ -188,24 +192,24 @@ export default function SubscriptionModal({ open, entities, subscription, onClos
           </div>
 
           <div>
-            <label className="field-label">Status</label>
+            <label className="field-label">{t.status}</label>
             <select
               className="input-field"
               value={form.status}
               onChange={(e) => update('status', e.target.value)}
             >
-              <option value="ACTIVE">Active</option>
-              <option value="EXPIRED">Expired</option>
+              <option value="ACTIVE">{t.active}</option>
+              <option value="EXPIRED">{t.expired}</option>
               <option value="CANCELLED">Cancelled</option>
             </select>
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" className="btn-secondary" onClick={closeModal}>
-              Cancel
+              {t.cancel}
             </button>
             <button type="submit" disabled={submitting} className="btn-primary">
-              {submitting ? 'Saving…' : isEdit ? 'Save changes' : 'Create subscription'}
+              {submitting ? (language === 'az' ? 'Yadda saxlanır…' : 'Saving…') : isEdit ? t.save : (language === 'az' ? 'Abunəlik yarat' : 'Create subscription')}
             </button>
           </div>
         </form>

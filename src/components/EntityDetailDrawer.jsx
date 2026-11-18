@@ -16,8 +16,13 @@ import toast from "react-hot-toast";
 import Badge, { subscriptionBadgeProps } from "./Badge.jsx";
 
 import * as api from "../lib/api.js";
+import { useDashboardLanguage } from "../context/DashboardLanguageContext.jsx";
 
 export default function EntityDetailDrawer({ entity, subscription, onClose }) {
+  const { language } = useDashboardLanguage();
+  const localizedType = language === "az"
+    ? (entity.type === "RESTAURANT" ? "Restoran" : "Otel")
+    : (entity.type === "RESTAURANT" ? "Restaurant" : "Hotel");
   const [showCreateLogin, setShowCreateLogin] = useState(false);
 
   const [loginEmail, setLoginEmail] = useState("");
@@ -45,7 +50,7 @@ export default function EntityDetailDrawer({ entity, subscription, onClose }) {
     return null;
   }
 
-  const badge = subscriptionBadgeProps(subscription);
+  const badge = subscriptionBadgeProps(subscription, language);
 
   const copyNfcUrl = async () => {
     try {
@@ -136,7 +141,7 @@ export default function EntityDetailDrawer({ entity, subscription, onClose }) {
             </h2>
 
             <p className="mt-0.5 text-xs text-ink-400">
-              {entity.type === "RESTAURANT" ? "Restaurant" : "Hotel"}
+              {localizedType}
             </p>
           </div>
 
@@ -155,7 +160,7 @@ export default function EntityDetailDrawer({ entity, subscription, onClose }) {
               </dt>
 
               <dd className="text-ink-800">
-                {entity.type === "RESTAURANT" ? "Restaurant" : "Hotel"}
+                {localizedType}
               </dd>
             </div>
 
@@ -167,7 +172,9 @@ export default function EntityDetailDrawer({ entity, subscription, onClose }) {
 
               <dd>
                 <Badge variant={entity.is_active ? "active" : "cancelled"}>
-                  {entity.is_active ? "Active entity" : "Inactive entity"}
+                  {entity.is_active
+                    ? (language === "az" ? "Aktiv biznes" : "Active business")
+                    : (language === "az" ? "Deaktiv biznes" : "Inactive business")}
                 </Badge>
               </dd>
             </div>
@@ -243,12 +250,12 @@ export default function EntityDetailDrawer({ entity, subscription, onClose }) {
               </dd>
             </div>
 
-            {/* Entity login */}
+            {/* Business login */}
             <div className="border-t border-ink-100 pt-5">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <dt className="text-sm font-semibold text-ink-900">
-                    Entity login
+                    {language === "az" ? "Biznes hesabı" : "Business account"}
                   </dt>
 
                   <dd className="mt-1 text-xs leading-5 text-ink-400">

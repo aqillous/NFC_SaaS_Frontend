@@ -236,7 +236,7 @@ export default function Users() {
                 <p className="mt-1 text-xs text-ink-400">
                   {user.is_superuser
                     ? "Platform admin"
-                    : user.entity_name || "Entity account"}
+                    : user.entity_name || t.businessAccount}
                 </p>
               </div>
 
@@ -312,7 +312,7 @@ function UserRow({ user, currentUser, language, t, onStatus, onReset }) {
         </p>
 
         <p className="mt-0.5 text-xs text-ink-300">
-          Created {new Date(user.created_at).toLocaleDateString()}
+          {t.created} {formatDate(user.created_at, language)}
         </p>
       </td>
 
@@ -446,7 +446,7 @@ function CreateUserModal({ entities, onClose, onCreated }) {
               onClick={() => setMode("entity")}
               className={mode === "entity" ? "btn-primary" : "btn-secondary"}
             >
-              Entity user
+              {t.businessUser}
             </button>
 
             <button
