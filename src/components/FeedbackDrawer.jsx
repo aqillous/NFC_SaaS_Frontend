@@ -15,6 +15,15 @@ export default function FeedbackDrawer({ entity, onClose }) {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    if (!entity) return undefined;
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [entity, onClose]);
+
+  useEffect(() => {
     if (!entity) {
       setFeedback([]);
       return;

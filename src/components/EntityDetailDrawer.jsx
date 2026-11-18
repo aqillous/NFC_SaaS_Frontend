@@ -31,8 +31,15 @@ export default function EntityDetailDrawer({ entity, subscription, onClose }) {
       setShowCreateLogin(false);
       setLoginEmail("");
       setLoginPassword("");
+      return undefined;
     }
-  }, [entity]);
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [entity, onClose]);
 
   if (!entity) {
     return null;
@@ -40,10 +47,13 @@ export default function EntityDetailDrawer({ entity, subscription, onClose }) {
 
   const badge = subscriptionBadgeProps(subscription);
 
-  const copyNfcUrl = () => {
-    navigator.clipboard.writeText(entity.nfc_url);
-
-    toast.success("NFC URL copied");
+  const copyNfcUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(entity.nfc_url);
+      toast.success("NFC URL copied");
+    } catch {
+      toast.error("Could not copy automatically");
+    }
   };
 
   const preview = () => {

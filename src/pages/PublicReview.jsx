@@ -44,6 +44,7 @@ const COPY = {
     failed: "Rəyinizi göndərmək mümkün olmadı. Yenidən cəhd edin.",
     googleUnavailable: "Google rəy səhifəsi hazırda əlçatan deyil.",
     loadFailed: "Rəy səhifəsini yükləmək mümkün olmadı.",
+    retry: "Yenidən yüklə",
     notFound: "Bu rəy linki tapılmadı.",
     unavailable: "Bu rəy linki hazırda aktiv deyil.",
     loading: "Səhifə yüklənir…",
@@ -77,6 +78,7 @@ const COPY = {
     failed: "Не удалось отправить отзыв. Попробуйте ещё раз.",
     googleUnavailable: "Страница отзывов Google сейчас недоступна.",
     loadFailed: "Не удалось загрузить страницу отзывов.",
+    retry: "Попробовать снова",
     notFound: "Ссылка на отзыв не найдена.",
     unavailable: "Эта ссылка на отзыв сейчас не активна.",
     loading: "Загрузка страницы…",
@@ -110,6 +112,7 @@ const COPY = {
     failed: "We couldn't send your feedback. Please try again.",
     googleUnavailable: "The Google review page is unavailable right now.",
     loadFailed: "We couldn't load this review page.",
+    retry: "Try again",
     notFound: "This review link could not be found.",
     unavailable: "This review link is currently unavailable.",
     loading: "Loading your page…",
@@ -142,6 +145,7 @@ export default function PublicReview() {
   const [error, setError] = useState("");
   const [complete, setComplete] = useState(false);
   const [keptPrivate, setKeptPrivate] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const t = COPY[language] || COPY.az;
 
   useEffect(() => {
@@ -157,7 +161,7 @@ export default function PublicReview() {
     setIntroFinished(false);
     const timer = window.setTimeout(() => setIntroFinished(true), 1000);
     return () => window.clearTimeout(timer);
-  }, [slug]);
+  }, [isBusinessPage, slug]);
 
   useEffect(() => {
     let active = true;
@@ -187,7 +191,7 @@ export default function PublicReview() {
     return () => {
       active = false;
     };
-  }, [slug]);
+  }, [slug, loadAttempt]);
 
   useEffect(() => {
     if (isBusinessPage && (routeRating < 1 || routeRating > 5)) {
@@ -263,7 +267,11 @@ export default function PublicReview() {
   if (!entity) {
     return (
       <PublicShell language={language} setLanguage={setLanguage} t={t}>
-        <UnavailableState message={t[error] || t.loadFailed} />
+        <UnavailableState
+          message={t[error] || t.loadFailed}
+          retryLabel={t.retry}
+          onRetry={() => setLoadAttempt((attempt) => attempt + 1)}
+        />
       </PublicShell>
     );
   }
@@ -385,6 +393,13 @@ export default function PublicReview() {
                 type="button"
                 aria-label={value === 1 ? t.oneStar : `${value} ${t.stars}`}
                 aria-pressed={rating === value}
+                onKeyDown={(event) => {
+                  if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
+                    event.preventDefault();
+                    const step = event.key === "ArrowRight" ? 1 : -1;
+                    setRating((current) => Math.min(5, Math.max(1, (current || 1) + step)));
+                  }
+                }}
                 onClick={() => {
                   setRating(value);
                   setError("");
@@ -399,6 +414,11 @@ export default function PublicReview() {
               </button>
             ))}
           </div>
+          {rating > 0 && (
+            <p className="mt-3 text-sm font-medium text-ink-500" aria-live="polite">
+              {rating === 1 ? t.oneStar : `${rating} ${t.stars}`}
+            </p>
+          )}
         </fieldset>
 
         {rating > 0 && (
@@ -517,13 +537,22 @@ function LoadingState({ message }) {
   );
 }
 
-function UnavailableState({ message }) {
+function UnavailableState({ message, retryLabel, onRetry }) {
   return (
     <div className="mx-auto max-w-md rounded-3xl border border-ink-100 bg-white p-8 text-center shadow-panel">
       <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-ink-50 text-ink-500">
         <AlertCircle size={26} />
       </div>
       <p className="mt-5 text-sm leading-6 text-ink-400">{message}</p>
+      {onRetry && (
+        <button
+          type="button"
+          onClick={onRetry}
+          className="mt-5 inline-flex min-h-11 items-center justify-center rounded-xl border border-ink-100 bg-white px-4 text-sm font-bold text-ink-800 transition hover:bg-ink-50"
+        >
+          {retryLabel}
+        </button>
+      )}
     </div>
   );
 }

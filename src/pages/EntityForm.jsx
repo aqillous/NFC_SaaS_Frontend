@@ -63,7 +63,12 @@ export default function EntityForm({ mode }) {
     }
   }, [isEdit, id, navigate])
 
-  const update = (field, value) => setForm((f) => ({ ...f, [field]: value }))
+  const update = (field, value) => {
+    setForm((f) => ({ ...f, [field]: value }))
+    if (errors[field]) {
+      setErrors((current) => ({ ...current, [field]: undefined }))
+    }
+  }
 
   const validate = () => {
     const e = {}
@@ -129,7 +134,13 @@ export default function EntityForm({ mode }) {
   }
 
   if (loading) {
-    return <div className="h-40 animate-pulse rounded-xl bg-white" />
+    return (
+      <div className="max-w-xl space-y-4" aria-busy="true" aria-label="Loading entity">
+        <div className="h-8 w-48 animate-pulse rounded-lg bg-ink-100" />
+        <div className="h-5 w-80 max-w-full animate-pulse rounded-lg bg-ink-100" />
+        <div className="h-96 animate-pulse rounded-2xl bg-white" />
+      </div>
+    )
   }
 
   if (createdEntity) {
@@ -137,12 +148,12 @@ export default function EntityForm({ mode }) {
   }
 
   return (
-    <div className="max-w-xl">
-      <Link to="/entities" className="mb-5 inline-flex items-center gap-1.5 text-sm text-ink-400 hover:text-ink-700">
+    <div>
+      <Link to="/entities" className="mb-5 inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-ink-400 hover:text-ink-700">
         <ArrowLeft size={15} /> Back to entities
       </Link>
 
-      <h1 className="font-display text-2xl font-semibold text-ink-900">
+      <h1 className="font-display text-2xl font-semibold tracking-tight text-ink-900 sm:text-3xl">
         {isEdit ? 'Edit entity' : 'New entity'}
       </h1>
       <p className="mt-1 mb-6 text-sm text-ink-400">
@@ -151,16 +162,22 @@ export default function EntityForm({ mode }) {
           : 'Create a restaurant or hotel and issue its permanent NFC review link.'}
       </p>
 
-      <form onSubmit={handleSubmit} className="panel space-y-5 p-6">
+      <form onSubmit={handleSubmit} className="panel grid gap-0 p-0 lg:grid-cols-[1fr_18rem]">
+        <div className="space-y-5 p-5 sm:p-6">
         <div>
-          <label className="field-label">Name</label>
+          <label className="field-label" htmlFor="entity-name">Name</label>
           <input
+            id="entity-name"
             className="input-field"
+            type="text"
+            required
+            aria-invalid={Boolean(errors.name)}
+            aria-describedby={errors.name ? 'entity-name-error' : undefined}
             value={form.name}
             onChange={(e) => update('name', e.target.value)}
             placeholder="Hilton Baku"
           />
-          {errors.name && <p className="mt-1 text-xs text-rust-500">{errors.name}</p>}
+          {errors.name && <p id="entity-name-error" role="alert" className="mt-1 text-xs text-rust-500">{errors.name}</p>}
         </div>
 
         <div>
@@ -170,6 +187,7 @@ export default function EntityForm({ mode }) {
               <button
                 type="button"
                 key={t}
+                aria-pressed={form.type === t}
                 onClick={() => update('type', t)}
                 className={`flex-1 rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors ${
                   form.type === t
@@ -184,15 +202,21 @@ export default function EntityForm({ mode }) {
         </div>
 
         <div>
-          <label className="field-label">Google Review URL</label>
+          <label className="field-label" htmlFor="google-review-url">Google Review URL</label>
           <input
+            id="google-review-url"
             className="input-field"
+            type="url"
+            inputMode="url"
+            required
+            aria-invalid={Boolean(errors.google_review_url)}
+            aria-describedby={errors.google_review_url ? 'google-url-error' : undefined}
             value={form.google_review_url}
             onChange={(e) => update('google_review_url', e.target.value)}
             placeholder="https://g.page/r/xxxxxxxxxxxx/review"
           />
           {errors.google_review_url && (
-            <p className="mt-1 text-xs text-rust-500">{errors.google_review_url}</p>
+            <p id="google-url-error" role="alert" className="mt-1 text-xs text-rust-500">{errors.google_review_url}</p>
           )}
         </div>
 
@@ -212,8 +236,9 @@ export default function EntityForm({ mode }) {
           <p className="mb-3 text-sm font-medium text-ink-900">Subscription</p>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="field-label">Start date</label>
+              <label className="field-label" htmlFor="subscription-start">Start date</label>
               <input
+                id="subscription-start"
                 type="date"
                 className="input-field"
                 value={form.starts_at}
@@ -221,14 +246,17 @@ export default function EntityForm({ mode }) {
               />
             </div>
             <div>
-              <label className="field-label">End date</label>
+              <label className="field-label" htmlFor="subscription-end">End date</label>
               <input
+                id="subscription-end"
                 type="date"
                 className="input-field"
+                aria-invalid={Boolean(errors.ends_at)}
+                aria-describedby={errors.ends_at ? 'subscription-end-error' : undefined}
                 value={form.ends_at}
                 onChange={(e) => update('ends_at', e.target.value)}
               />
-              {errors.ends_at && <p className="mt-1 text-xs text-rust-500">{errors.ends_at}</p>}
+              {errors.ends_at && <p id="subscription-end-error" role="alert" className="mt-1 text-xs text-rust-500">{errors.ends_at}</p>}
             </div>
           </div>
 
@@ -248,14 +276,21 @@ export default function EntityForm({ mode }) {
           )}
         </div>
 
-        <div className="flex justify-end gap-2 border-t border-ink-100 pt-5">
-          <button type="button" className="btn-secondary" onClick={() => navigate('/entities')}>
-            Cancel
-          </button>
-          <button type="submit" disabled={submitting} className="btn-primary">
-            {submitting ? 'Saving…' : isEdit ? 'Save changes' : 'Create entity'}
-          </button>
         </div>
+        <aside className="border-t border-ink-100 bg-ink-50/40 p-5 lg:border-l lg:border-t-0 lg:p-6">
+          <p className="text-xs font-bold uppercase tracking-[0.14em] text-ink-400">Review setup</p>
+          <p className="mt-2 text-sm leading-6 text-ink-500">
+            The subscription period controls whether the NFC link can open the public review experience.
+          </p>
+          <div className="mt-5 flex flex-col gap-2">
+            <button type="submit" disabled={submitting} className="btn-primary w-full">
+              {submitting ? 'Saving…' : isEdit ? 'Save changes' : 'Create entity'}
+            </button>
+            <button type="button" className="btn-secondary w-full" onClick={() => navigate('/entities')}>
+              Cancel
+            </button>
+          </div>
+        </aside>
       </form>
     </div>
   )
@@ -263,9 +298,13 @@ export default function EntityForm({ mode }) {
 
 function CreatedSuccess({ entity }) {
   const navigate = useNavigate()
-  const copy = () => {
-    navigator.clipboard.writeText(entity.nfc_url)
-    toast.success('NFC URL copied')
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(entity.nfc_url)
+      toast.success('NFC URL copied')
+    } catch {
+      toast.error('Could not copy automatically')
+    }
   }
   return (
     <div className="max-w-md">
