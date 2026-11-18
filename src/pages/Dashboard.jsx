@@ -456,7 +456,7 @@ function RestaurantDashboard({ language, setLanguage }) {
             <MiniStat label={t.today} value={stats?.submissions_today ?? 0} />
 
             <MiniStat
-              label={t.thisMonth}
+              label={t.thisMonthReviews}
               value={stats?.submissions_this_month ?? 0}
             />
           </div>
@@ -608,7 +608,7 @@ function ScoreBar({ label, value }) {
 
 function DashboardToolbar({ language, setLanguage, loading, onRefresh, t }) {
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       <label className="sr-only" htmlFor="dashboard-language">
         {t.language}
       </label>

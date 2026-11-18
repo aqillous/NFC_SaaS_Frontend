@@ -1,6 +1,6 @@
 import { createContext, useContext, useState } from "react";
 
-const LANGUAGES = ["az", "ru", "en"];
+export const LANGUAGES = ["az", "en"];
 const STORAGE_KEY = "rateup_dashboard_language";
 
 const DashboardLanguageContext = createContext(null);

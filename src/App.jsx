@@ -13,6 +13,7 @@ import EntityForm from "./pages/EntityForm.jsx";
 import Subscriptions from "./pages/Subscriptions.jsx";
 import Users from "./pages/Users.jsx";
 import PublicReview from "./pages/PublicReview.jsx";
+import NotFound from "./pages/NotFound.jsx";
 
 function Protected({ children }) {
   return (
@@ -111,7 +112,7 @@ export default function App() {
           }
         />
 
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </>
   );

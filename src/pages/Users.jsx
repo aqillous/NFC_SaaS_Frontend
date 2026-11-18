@@ -15,8 +15,13 @@ import {
 import toast from "react-hot-toast";
 
 import * as api from "../lib/api.js";
+import PageHeader from "../components/PageHeader.jsx";
+import { useDashboardLanguage } from "../context/DashboardLanguageContext.jsx";
+import { DASHBOARD_COPY } from "../lib/dashboardTranslations.js";
 
 export default function Users() {
+  const { language } = useDashboardLanguage();
+  const t = DASHBOARD_COPY[language];
   const [users, setUsers] = useState([]);
 
   const [entities, setEntities] = useState([]);
@@ -108,29 +113,22 @@ export default function Users() {
 
   return (
     <div>
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="font-display text-2xl font-semibold tracking-tight text-ink-900 sm:text-3xl">
-            Users
-          </h1>
-
-          <p className="mt-1 text-sm text-ink-400">
-            Manage platform admins and entity login accounts.
-          </p>
-        </div>
-
-        <div className="flex gap-2">
-          <button onClick={load} className="btn-secondary" disabled={loading}>
-            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-            Refresh
-          </button>
-
-          <button onClick={() => setShowCreate(true)} className="btn-primary">
-            <Plus size={16} />
-            New user
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title={t.users}
+        description={t.usersDescription}
+        actions={
+          <>
+            <button onClick={load} className="btn-secondary" disabled={loading}>
+              <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+              {t.refresh}
+            </button>
+            <button onClick={() => setShowCreate(true)} className="btn-primary">
+              <Plus size={16} />
+              {t.newUser}
+            </button>
+          </>
+        }
+      />
 
       <div className="relative mb-4 max-w-xl">
         <Search
@@ -140,7 +138,9 @@ export default function Users() {
 
         <input
           className="input-field pl-9"
-          placeholder="Search email, entity or role…"
+          type="search"
+          aria-label={t.searchUsers}
+          placeholder={t.searchUsers}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />
@@ -148,6 +148,7 @@ export default function Users() {
 
       <div className="hidden overflow-hidden rounded-2xl border border-ink-100 bg-white shadow-subtle md:block">
         <table className="w-full text-left text-sm">
+          <caption className="sr-only">Platform users and account status</caption>
           <thead>
             <tr className="border-b border-ink-100 bg-ink-50/60 text-xs uppercase tracking-wide text-ink-300">
               <th className="px-5 py-3 font-medium">User</th>
@@ -459,6 +460,7 @@ function CreateUserModal({ entities, onClose, onCreated }) {
               onClick={generatePassword}
               className="btn-secondary shrink-0 px-3"
               title="Generate password"
+              aria-label="Generate password"
             >
               <RefreshCw size={15} />
             </button>
@@ -545,6 +547,7 @@ function ResetPasswordModal({ user, onClose, onSubmit }) {
               type="button"
               onClick={generatePassword}
               className="btn-secondary shrink-0 px-3"
+              aria-label="Generate password"
             >
               <RefreshCw size={15} />
             </button>
@@ -566,6 +569,14 @@ function ResetPasswordModal({ user, onClose, onSubmit }) {
 }
 
 function Modal({ title, children, onClose }) {
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button
@@ -575,13 +586,18 @@ function Modal({ title, children, onClose }) {
         aria-label="Close"
       />
 
-      <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-ink-100 bg-white shadow-panel">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-ink-100 bg-white shadow-panel"
+      >
         <div className="flex items-center justify-between border-b border-ink-100 px-5 py-4">
           <h2 className="font-display text-lg font-semibold text-ink-900">
             {title}
           </h2>
 
-          <button onClick={onClose} className="icon-btn">
+          <button onClick={onClose} className="icon-btn" aria-label="Close">
             <X size={18} />
           </button>
         </div>

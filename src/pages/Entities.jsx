@@ -18,8 +18,13 @@ import Badge, { subscriptionBadgeProps } from "../components/Badge.jsx";
 import ConfirmDialog from "../components/ConfirmDialog.jsx";
 import EntityDetailDrawer from "../components/EntityDetailDrawer.jsx";
 import FeedbackDrawer from "../components/FeedbackDrawer.jsx";
+import PageHeader from "../components/PageHeader.jsx";
+import { useDashboardLanguage } from "../context/DashboardLanguageContext.jsx";
+import { DASHBOARD_COPY } from "../lib/dashboardTranslations.js";
 
 export default function Entities() {
+  const { language } = useDashboardLanguage();
+  const t = DASHBOARD_COPY[language];
   const [entities, setEntities] = useState([]);
   const [subsByEntity, setSubsByEntity] = useState({});
   const [loading, setLoading] = useState(true);
@@ -78,9 +83,13 @@ export default function Entities() {
     });
   }, [entities, search, typeFilter]);
 
-  const handleCopy = (url) => {
-    navigator.clipboard.writeText(url);
-    toast.success("NFC URL copied");
+  const handleCopy = async (url) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("NFC URL copied");
+    } catch {
+      toast.error("Could not copy automatically");
+    }
   };
 
   const handleDelete = async () => {
@@ -104,22 +113,16 @@ export default function Entities() {
   return (
     <div>
       {/* Header */}
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="font-display text-2xl font-semibold tracking-tight text-ink-900 sm:text-3xl">
-            Entities
-          </h1>
-
-          <p className="mt-1 text-sm text-ink-400">
-            Restaurants and hotels using NFC review cards.
-          </p>
-        </div>
-
-        <Link to="/entities/new" className="btn-primary sm:w-auto">
-          <Plus size={16} />
-          New entity
-        </Link>
-      </div>
+      <PageHeader
+        title={t.businesses}
+        description={t.businessesDescription}
+        actions={
+          <Link to="/entities/new" className="btn-primary sm:w-auto">
+            <Plus size={16} />
+            {t.newBusiness}
+          </Link>
+        }
+      />
 
       {/* Filters */}
       <div className="mb-4 grid gap-2 sm:grid-cols-[1fr_10rem]">
@@ -131,28 +134,32 @@ export default function Entities() {
 
           <input
             className="input-field pl-9"
-            placeholder="Search by name…"
+            type="search"
+            aria-label={t.searchBusiness}
+            placeholder={t.searchBusiness}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
 
         <select
+          aria-label={t.allTypes}
           className="input-field"
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value)}
         >
-          <option value="">All types</option>
+          <option value="">{t.allTypes}</option>
 
-          <option value="RESTAURANT">Restaurant</option>
+          <option value="RESTAURANT">{t.restaurant}</option>
 
-          <option value="HOTEL">Hotel</option>
+          <option value="HOTEL">{t.hotel}</option>
         </select>
       </div>
 
       {/* Desktop */}
       <div className="hidden overflow-hidden rounded-2xl border border-ink-100 bg-white shadow-subtle md:block">
         <table className="w-full text-left text-sm">
+          <caption className="sr-only">Entities and subscription status</caption>
           <thead>
             <tr className="border-b border-ink-100 bg-ink-50/60 text-xs uppercase tracking-wide text-ink-300">
               <th className="px-5 py-3 font-medium">Entity</th>
@@ -285,26 +292,30 @@ export default function Entities() {
                     }
                     className="btn-secondary"
                     title="Preview rating page"
+                    aria-label="Preview rating page"
                   >
                     <ExternalLink size={14} />
                     Preview
                   </button>
-
-                  <Link
-                    to={`/entities/${entity.id}/edit`}
-                    className="btn-secondary !w-10 shrink-0 px-0"
-                    aria-label="Edit"
-                  >
-                    <Pencil size={14} />
-                  </Link>
-
-                  <button
-                    onClick={() => setPendingDelete(entity)}
-                    className="btn-secondary !w-10 shrink-0 px-0 !text-rust-500"
-                    aria-label="Delete"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                  <div className="flex gap-2">
+                    <Link
+                      to={`/entities/${entity.id}/edit`}
+                      className="btn-secondary flex-1 !w-auto px-3"
+                      aria-label={`Edit ${entity.name}`}
+                      title="Edit"
+                    >
+                      <Pencil size={14} />
+                      Edit
+                    </Link>
+                    <button
+                      onClick={() => setPendingDelete(entity)}
+                      className="btn-secondary !w-12 shrink-0 px-0 !text-rust-500"
+                      aria-label={`Delete ${entity.name}`}
+                      title="Delete"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </div>
               </div>
             );
