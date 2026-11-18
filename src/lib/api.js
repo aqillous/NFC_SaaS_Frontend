@@ -1,7 +1,12 @@
 import axios from "axios";
 
+const LOCAL_API_URL = "http://localhost:8000";
+const DEPLOYED_API_URL =
+  "https://nfc-saa-s-backend-525r26zao-aqillous.vercel.app";
+
 export const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:8000";
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.PROD ? DEPLOYED_API_URL : LOCAL_API_URL);
 
 export const TOKEN_STORAGE_KEY = "tapline_admin_token";
 
