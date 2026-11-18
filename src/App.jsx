@@ -14,6 +14,7 @@ import Subscriptions from "./pages/Subscriptions.jsx";
 import Users from "./pages/Users.jsx";
 import PublicReview from "./pages/PublicReview.jsx";
 import NotFound from "./pages/NotFound.jsx";
+import BusinessDetail from "./pages/BusinessDetail.jsx";
 
 function Protected({ children }) {
   return (
@@ -81,6 +82,15 @@ export default function App() {
           element={
             <Protected>
               <EntityForm mode="create" />
+            </Protected>
+          }
+        />
+
+        <Route
+          path="/entities/:id"
+          element={
+            <Protected>
+              <BusinessDetail />
             </Protected>
           }
         />
