@@ -26,6 +26,7 @@ import PageHeader from "../components/PageHeader.jsx";
 import RowActionsMenu from "../components/RowActionsMenu.jsx";
 import { useDashboardLanguage } from "../context/DashboardLanguageContext.jsx";
 import { DASHBOARD_COPY } from "../lib/dashboardTranslations.js";
+import { formatDate, relativeDays } from "../lib/formatters.js";
 
 export default function Entities() {
   const { language } = useDashboardLanguage();
@@ -70,11 +71,11 @@ export default function Entities() {
 
       setSubsByEntity(latestByEntity);
     } catch {
-      toast.error("Failed to load entities");
+      toast.error(language === "az" ? "Bizneslər yüklənmədi" : "Failed to load businesses");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [language]);
 
   useEffect(() => {
     load();
@@ -135,7 +136,7 @@ export default function Entities() {
       await navigator.clipboard.writeText(url);
       toast.success(t.copyDone);
     } catch {
-      toast.error("Could not copy automatically");
+      toast.error(language === "az" ? "Avtomatik kopyalama alınmadı" : "Could not copy automatically");
     }
   };
 
@@ -164,13 +165,15 @@ export default function Entities() {
     try {
       await api.deleteEntity(pendingDelete.id);
 
-      toast.success(`${pendingDelete.name} deleted`);
+      toast.success(language === "az"
+        ? `${pendingDelete.name} silindi`
+        : `${pendingDelete.name} deleted`);
 
       setEntities((prev) =>
         prev.filter((entity) => entity.id !== pendingDelete.id),
       );
     } catch {
-      toast.error("Failed to delete entity");
+      toast.error(language === "az" ? "Biznes silinmədi" : "Failed to delete business");
     } finally {
       setPendingDelete(null);
     }
@@ -254,7 +257,9 @@ export default function Entities() {
       {/* Desktop */}
       <div className="hidden overflow-hidden rounded-2xl border border-ink-100 bg-white shadow-subtle md:block">
         <table className="w-full text-left text-sm">
-          <caption className="sr-only">Entities and subscription status</caption>
+          <caption className="sr-only">
+            {language === "az" ? "Bizneslər və abunəlik statusları" : "Businesses and subscription status"}
+          </caption>
           <thead>
             <tr className="border-b border-ink-100 bg-ink-50/60 text-xs uppercase tracking-wide text-ink-300">
               <th className="w-12 px-3 py-3">
@@ -306,7 +311,7 @@ export default function Entities() {
                   colSpan={7}
                   className="px-5 py-10 text-center text-sm text-ink-300"
                 >
-                  No entities found.
+                  {t.noBusinesses}
                 </td>
               </tr>
             ) : (
@@ -370,7 +375,7 @@ export default function Entities() {
           ))
         ) : filtered.length === 0 ? (
           <div className="panel p-8 text-center text-sm text-ink-300">
-            No entities found.
+            {t.noBusinesses}
           </div>
         ) : (
           paged.map((entity) => {
@@ -401,7 +406,7 @@ export default function Entities() {
                       <span className="mt-1 flex items-center gap-1.5 text-xs text-ink-400">
                         {entity.type === "RESTAURANT" ? <UtensilsCrossed size={13} /> : <BedDouble size={13} />}
                         {entity.type === "RESTAURANT" ? t.restaurant : t.hotel}
-                        {!entity.is_active && <span>• inactive</span>}
+                        {!entity.is_active && <span>• {t.inactive}</span>}
                       </span>
                     </span>
                   </button>
@@ -434,15 +439,15 @@ export default function Entities() {
                     className="btn-secondary w-auto"
                   >
                     <ExternalLink size={14} />
-                    View
+                    {t.view}
                   </button>
                   <RowActionsMenu
                     label={`Actions for ${entity.name}`}
                     items={[
-                      { label: "Edit", icon: <Pencil size={14} />, onClick: () => navigate(`/entities/${entity.id}/edit`) },
-                      { label: "View reviews", icon: <MessageSquare size={14} />, onClick: () => setFeedbackEntity(entity) },
-                      { label: "Copy NFC link", icon: <Copy size={14} />, onClick: () => handleCopy(entity.nfc_url) },
-                      { label: "Delete", icon: <Trash2 size={14} />, danger: true, onClick: () => setPendingDelete(entity) },
+                      { label: t.edit, icon: <Pencil size={14} />, onClick: () => navigate(`/entities/${entity.id}/edit`) },
+                      { label: t.viewReviews, icon: <MessageSquare size={14} />, onClick: () => setFeedbackEntity(entity) },
+                      { label: t.copyNfc, icon: <Copy size={14} />, onClick: () => handleCopy(entity.nfc_url) },
+                      { label: t.delete, icon: <Trash2 size={14} />, danger: true, onClick: () => setPendingDelete(entity) },
                     ]}
                   />
                 </div>
@@ -455,9 +460,11 @@ export default function Entities() {
       {/* Delete dialog */}
       <ConfirmDialog
         open={!!pendingDelete}
-        title="Delete entity"
-        message={`This permanently deletes "${pendingDelete?.name}" and its subscriptions. The NFC card will stop working immediately. This cannot be undone.`}
-        confirmLabel="Delete entity"
+        title={language === "az" ? "Biznesi sil" : "Delete business"}
+        message={language === "az"
+          ? `"${pendingDelete?.name}" və onun abunəlikləri həmişəlik silinəcək. NFC kartı dərhal işləməyəcək. Bu əməliyyat geri qaytarıla bilməz.`
+          : `This permanently deletes "${pendingDelete?.name}" and its subscriptions. The NFC card will stop working immediately. This cannot be undone.`}
+        confirmLabel={language === "az" ? "Biznesi sil" : "Delete business"}
         danger
         requireText={pendingDelete?.name}
         onConfirm={handleDelete}
@@ -491,6 +498,7 @@ function EntityTableRow({
   onFeedback,
 }) {
   const { language } = useDashboardLanguage();
+  const t = DASHBOARD_COPY[language];
   const badge = subscriptionBadgeProps(sub, language);
   const navigate = useNavigate();
 
@@ -524,7 +532,7 @@ function EntityTableRow({
         </div>
 
         {!entity.is_active && (
-          <span className="ml-2 text-xs text-ink-300">(inactive)</span>
+          <span className="ml-2 text-xs text-ink-300">({t.inactive})</span>
         )}
       </td>
 
@@ -536,7 +544,7 @@ function EntityTableRow({
             <BedDouble size={14} />
           )}
 
-          {entity.type === "RESTAURANT" ? "Restaurant" : "Hotel"}
+          {entity.type === "RESTAURANT" ? t.restaurant : t.hotel}
         </span>
       </td>
 
@@ -547,8 +555,8 @@ function EntityTableRow({
       <td className="px-5 py-3.5 text-ink-500">
         {sub ? (
           <>
-            <span>{new Date(sub.ends_at).toLocaleDateString()}</span>
-            <span className="mt-0.5 block text-xs text-ink-300">{relativeDateHint(sub.ends_at)}</span>
+            <span>{formatDate(sub.ends_at, language)}</span>
+            <span className="mt-0.5 block text-xs text-ink-300">{relativeDays(sub.ends_at, language)}</span>
           </>
         ) : "—"}
       </td>
@@ -574,7 +582,7 @@ function EntityTableRow({
             aria-label={t.qrTodo}
             onClick={(event) => {
               event.stopPropagation();
-              toast.info("TODO: QR download needs client-side QR library");
+              toast(t.qrTodo);
             }}
           >
             <QrCode size={14} />
@@ -586,11 +594,11 @@ function EntityTableRow({
         <RowActionsMenu
           label={`Actions for ${entity.name}`}
           items={[
-            { label: "View", icon: <ExternalLink size={14} />, onClick: () => onDetail(entity) },
-            { label: "Edit", icon: <Pencil size={14} />, onClick: () => navigate(`/entities/${entity.id}/edit`) },
-            { label: "View reviews", icon: <MessageSquare size={14} />, onClick: () => onFeedback(entity) },
-            { label: "Copy NFC link", icon: <Copy size={14} />, onClick: () => onCopy(entity.nfc_url) },
-            { label: "Delete", icon: <Trash2 size={14} />, danger: true, onClick: () => onDelete(entity) },
+            { label: t.view, icon: <ExternalLink size={14} />, onClick: () => onDetail(entity) },
+            { label: t.edit, icon: <Pencil size={14} />, onClick: () => navigate(`/entities/${entity.id}/edit`) },
+            { label: t.viewReviews, icon: <MessageSquare size={14} />, onClick: () => onFeedback(entity) },
+            { label: t.copyNfc, icon: <Copy size={14} />, onClick: () => onCopy(entity.nfc_url) },
+            { label: t.delete, icon: <Trash2 size={14} />, danger: true, onClick: () => onDelete(entity) },
           ]}
         />
       </td>

@@ -20,9 +20,6 @@ import { useDashboardLanguage } from "../context/DashboardLanguageContext.jsx";
 
 export default function EntityDetailDrawer({ entity, subscription, onClose }) {
   const { language } = useDashboardLanguage();
-  const localizedType = language === "az"
-    ? (entity.type === "RESTAURANT" ? "Restoran" : "Otel")
-    : (entity.type === "RESTAURANT" ? "Restaurant" : "Hotel");
   const [showCreateLogin, setShowCreateLogin] = useState(false);
 
   const [loginEmail, setLoginEmail] = useState("");
@@ -49,6 +46,10 @@ export default function EntityDetailDrawer({ entity, subscription, onClose }) {
   if (!entity) {
     return null;
   }
+
+  const localizedType = language === "az"
+    ? (entity.type === "RESTAURANT" ? "Restoran" : "Otel")
+    : (entity.type === "RESTAURANT" ? "Restaurant" : "Hotel");
 
   const badge = subscriptionBadgeProps(subscription, language);
 
