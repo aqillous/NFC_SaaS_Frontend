@@ -9,6 +9,8 @@ import PageHeader from "../components/PageHeader.jsx";
 import SubscriptionModal from "../components/SubscriptionModal.jsx";
 import { useDashboardLanguage } from "../context/DashboardLanguageContext.jsx";
 import { DASHBOARD_COPY } from "../lib/dashboardTranslations.js";
+import { formatDate as formatDateISO, relativeDays } from "../lib/formatters.js";
+import RowActionsMenu from "../components/RowActionsMenu.jsx";
 
 export default function Subscriptions() {
   const { language } = useDashboardLanguage();
@@ -18,6 +20,8 @@ export default function Subscriptions() {
   const [entities, setEntities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState(searchParams.get("status") || "");
+  const [businessQuery, setBusinessQuery] = useState("");
+  const [sortKey, setSortKey] = useState("default");
   const [modalState, setModalState] = useState({ open: false, subscription: null });
   const [pendingDelete, setPendingDelete] = useState(null);
 
@@ -48,7 +52,36 @@ export default function Subscriptions() {
   }, [entities]);
 
   const filtered = useMemo(() => {
-    if (!statusFilter) return subscriptions;
+    let result = subscriptions;
+    if (!statusFilter) result = subscriptions;
+    else if (statusFilter === "VALID") result = subscriptions.filter((item) => item.is_currently_valid);
+    else if (statusFilter === "INVALID") result = subscriptions.filter((item) => !item.is_currently_valid);
+    else if (statusFilter === "EXPIRING_SOON") result = subscriptions.filter((item) =>
+      item.is_currently_valid &&
+      new Date(item.ends_at).getTime() - Date.now() <= 30 * 86400000,
+    );
+    else if (statusFilter === "EXPIRED") result = subscriptions.filter((item) =>
+      !item.is_currently_valid || item.status === "EXPIRED",
+    );
+    else result = subscriptions.filter((item) => item.status === statusFilter);
+    if (businessQuery.trim()) {
+      result = result.filter((item) =>
+        (entityById[item.entity_id]?.name || "").toLowerCase().includes(businessQuery.trim().toLowerCase()),
+      );
+    }
+    result = [...result].sort((a, b) => {
+      if (sortKey === "business") return (entityById[a.entity_id]?.name || "").localeCompare(entityById[b.entity_id]?.name || "");
+      if (sortKey === "end") return new Date(a.ends_at) - new Date(b.ends_at);
+      if (sortKey === "days") return new Date(a.ends_at) - new Date(b.ends_at);
+      const now = Date.now();
+      const aExpired = new Date(a.ends_at).getTime() < now;
+      const bExpired = new Date(b.ends_at).getTime() < now;
+      if (aExpired !== bExpired) return aExpired ? -1 : 1;
+      return new Date(a.ends_at) - new Date(b.ends_at);
+    });
+    return result;
+  }, [subscriptions, statusFilter, businessQuery, sortKey, entityById]);
+/*
     if (statusFilter === "VALID") return subscriptions.filter((item) => item.is_currently_valid);
     if (statusFilter === "INVALID") return subscriptions.filter((item) => !item.is_currently_valid);
     if (statusFilter === "EXPIRING_SOON") return subscriptions.filter((item) =>
@@ -60,6 +93,7 @@ export default function Subscriptions() {
     );
     return subscriptions.filter((item) => item.status === statusFilter);
   }, [subscriptions, statusFilter]);
+*/
 
   const counts = useMemo(() => ({
     all: subscriptions.length,
@@ -101,6 +135,14 @@ export default function Subscriptions() {
       />
 
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <input
+          type="search"
+          value={businessQuery}
+          onChange={(event) => setBusinessQuery(event.target.value)}
+          className="input-field max-w-xs"
+          placeholder={language === "az" ? "Biznes adı ilə axtar..." : "Search by business name..."}
+          aria-label={language === "az" ? "Biznes adı ilə axtar" : "Search by business name"}
+        />
         <select
           aria-label="Filter subscriptions"
           className="input-field w-full sm:hidden"
@@ -146,12 +188,18 @@ export default function Subscriptions() {
           <caption className="sr-only">Subscriptions and validity periods</caption>
           <thead>
             <tr className="border-b border-ink-100 bg-ink-50/70 text-xs uppercase tracking-wide text-ink-400">
-              <th className="px-5 py-3.5 font-semibold">Entity</th>
-              <th className="px-5 py-3.5 font-semibold">Status</th>
-              <th className="px-5 py-3.5 font-semibold">Start date</th>
-              <th className="px-5 py-3.5 font-semibold">End date</th>
-              <th className="px-5 py-3.5 font-semibold">Days left</th>
-              <th className="px-5 py-3.5 text-right font-semibold">Actions</th>
+              <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wide text-ink-400">
+                <button type="button" onClick={() => setSortKey("business")} className="inline-flex items-center gap-1">{t.business} ⇅</button>
+              </th>
+              <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wide text-ink-400">{t.status}</th>
+              <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wide text-ink-400">{t.startDate}</th>
+              <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wide text-ink-400">
+                <button type="button" onClick={() => setSortKey("end")} className="inline-flex items-center gap-1">{t.endDate} ⇅</button>
+              </th>
+              <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wide text-ink-400">
+                <button type="button" onClick={() => setSortKey("days")} className="inline-flex items-center gap-1">{t.daysLeft} ⇅</button>
+              </th>
+              <th className="px-5 py-3.5 text-right text-xs font-semibold uppercase tracking-wide text-ink-400">{t.actions}</th>
             </tr>
           </thead>
           <tbody>
@@ -160,25 +208,36 @@ export default function Subscriptions() {
             ) : filtered.length === 0 ? (
               <tr><td colSpan={6} className="px-5 py-14 text-center text-sm text-ink-300">No subscriptions found.</td></tr>
             ) : filtered.map((subscription) => {
-              const badge = subscriptionBadgeProps(subscription);
+              const badge = subscriptionBadgeProps(subscription, language);
               const entity = entityById[subscription.entity_id];
               const daysLeft = Math.ceil((new Date(subscription.ends_at).getTime() - Date.now()) / 86400000);
               const isExpired = !subscription.is_currently_valid || subscription.status === "EXPIRED";
               return (
-                <tr key={subscription.id} className={`border-b border-ink-100 last:border-0 hover:bg-ink-50/60 ${isExpired ? "border-l-2 border-l-rust-500/50" : ""}`}>
-                  <td className="px-5 py-4">
-                    <p className="font-semibold text-ink-900">{entity?.name || "Unknown business"}</p>
-                    <p className="mt-0.5 text-xs text-ink-300" title={subscription.id}>ID: ****{subscription.id.slice(-6)}</p>
+                <tr key={subscription.id} className="border-b border-ink-100 last:border-0 hover:bg-ink-50/60">
+                  <td className={`px-5 py-4 ${isExpired ? "border-l-2 border-l-rust-500" : ""}`}>
+                    <p className="font-semibold text-ink-900">{entity?.name || "—"}</p>
+                    <button
+                      type="button"
+                      className="mt-0.5 text-xs text-ink-300"
+                      title={subscription.id}
+                      aria-label={`Copy subscription ID ${subscription.id}`}
+                      onClick={async () => {
+                        await navigator.clipboard.writeText(subscription.id);
+                        toast.success(t.copyDone);
+                      }}
+                    >
+                      ID: ****{subscription.id.slice(-6)}
+                    </button>
                   </td>
                   <td className="px-5 py-4"><Badge variant={badge.variant}>{badge.label}</Badge></td>
-                  <td className="px-5 py-4 text-ink-500">{formatDate(subscription.starts_at)}</td>
-                  <td className="px-5 py-4 text-ink-500">{formatDate(subscription.ends_at)}</td>
-                  <td className="px-5 py-4 text-ink-500">{daysLeft >= 0 ? `${daysLeft}d` : `-${Math.abs(daysLeft)}d`}</td>
+                  <td className="px-5 py-4 text-ink-500">{formatDateISO(subscription.starts_at, language)}</td>
+                  <td className="px-5 py-4 text-ink-500">{formatDateISO(subscription.ends_at, language)}</td>
+                  <td className={`px-5 py-4 ${daysLeft < 0 ? "text-rust-500" : daysLeft <= 30 ? "text-amber-700" : "text-ink-500"}`}>{relativeDays(subscription.ends_at, language)}</td>
                   <td className="px-5 py-4">
-                    <div className="flex justify-end gap-1">
+                    <div className="flex h-10 items-center justify-end gap-2">
                       {(badge.variant === "expired" || badge.variant === "warning") && (
                         <button
-                          className="btn-secondary min-h-9 px-3"
+                          className="btn-secondary w-20 min-h-9 px-3"
                           onClick={() => {
                             const today = new Date();
                             const end = new Date(today);
@@ -193,25 +252,17 @@ export default function Subscriptions() {
                             });
                           }}
                         >
-                          Renew
+                          {t.renew}
                         </button>
                       )}
-                      <button
-                        className="icon-btn"
-                        title="Edit subscription"
-                        aria-label="Edit subscription"
-                        onClick={() => setModalState({ open: true, subscription })}
-                      >
-                        <Pencil size={15} />
-                      </button>
-                      <button
-                        className="icon-btn hover:!bg-rust-500/10 hover:!text-rust-500"
-                        title="Delete subscription"
-                        aria-label="Delete subscription"
-                        onClick={() => setPendingDelete(subscription)}
-                      >
-                        <Trash2 size={15} />
-                      </button>
+                      <RowActionsMenu
+                        label={language === "az" ? "Abunəlik əməliyyatları" : "Subscription actions"}
+                        items={[
+                          { label: t.edit, icon: <Pencil size={14} />, onClick: () => setModalState({ open: true, subscription }) },
+                          ...(badge.variant === "expired" || badge.variant === "warning" ? [{ label: t.renew, icon: <CalendarDays size={14} />, onClick: () => setModalState({ open: true, subscription: { ...subscription, starts_at: new Date().toISOString(), ends_at: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString() } }) }] : []),
+                          { label: t.delete, icon: <Trash2 size={14} />, danger: true, onClick: () => setPendingDelete(subscription) },
+                        ]}
+                      />
                     </div>
                   </td>
                 </tr>
@@ -229,7 +280,7 @@ export default function Subscriptions() {
         ) : filtered.length === 0 ? (
           <div className="panel col-span-full p-10 text-center text-sm text-ink-300">No subscriptions found.</div>
         ) : filtered.map((subscription) => {
-          const badge = subscriptionBadgeProps(subscription);
+          const badge = subscriptionBadgeProps(subscription, language);
           const entity = entityById[subscription.entity_id];
           const daysLeft = Math.ceil((new Date(subscription.ends_at).getTime() - Date.now()) / 86400000);
           const isExpired = badge.variant === "expired";
@@ -245,15 +296,15 @@ export default function Subscriptions() {
               <div className="mt-4 grid grid-cols-2 gap-3 rounded-xl bg-ink-50 p-3">
                 <div>
                   <p className="text-xs text-ink-300">Start date</p>
-                  <p className="mt-1 text-sm font-semibold text-ink-700">{formatDate(subscription.starts_at)}</p>
+                  <p className="mt-1 text-sm font-semibold text-ink-700">{formatDateISO(subscription.starts_at, language)}</p>
                 </div>
                 <div>
                   <p className="text-xs text-ink-300">End date</p>
-                  <p className="mt-1 text-sm font-semibold text-ink-700">{formatDate(subscription.ends_at)}</p>
+                  <p className="mt-1 text-sm font-semibold text-ink-700">{formatDateISO(subscription.ends_at, language)}</p>
                 </div>
                 <div className="col-span-2">
                   <p className="text-xs text-ink-300">Days left</p>
-                  <p className="mt-1 text-sm font-semibold text-ink-700">{daysLeft >= 0 ? `${daysLeft}d` : `-${Math.abs(daysLeft)}d`}</p>
+                  <p className={`mt-1 text-sm font-semibold ${daysLeft < 0 ? "text-rust-500" : daysLeft <= 30 ? "text-amber-700" : "text-ink-700"}`}>{relativeDays(subscription.ends_at, language)}</p>
                 </div>
               </div>
               <div className="mt-3 grid grid-cols-2 gap-2">
@@ -298,6 +349,7 @@ export default function Subscriptions() {
         message="This removes the subscription record. The entity will show as having no subscription until a new one is created."
         confirmLabel="Delete subscription"
         danger
+        requireText={pendingDelete ? (entityById[pendingDelete.entity_id]?.name || "") : undefined}
         onConfirm={handleDelete}
         onCancel={() => setPendingDelete(null)}
       />
@@ -307,8 +359,4 @@ export default function Subscriptions() {
 
 function formatStatus(status) {
   return status.charAt(0) + status.slice(1).toLowerCase();
-}
-
-function formatDate(value) {
-  return new Date(value).toLocaleDateString();
 }
