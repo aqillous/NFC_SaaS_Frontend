@@ -24,6 +24,7 @@ import { DASHBOARD_COPY } from "../lib/dashboardTranslations.js";
 import RowActionsMenu from "../components/RowActionsMenu.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import ConfirmDialog from "../components/ConfirmDialog.jsx";
+import { formatDate } from "../lib/formatters.js";
 
 export default function Users() {
   const { language } = useDashboardLanguage();
@@ -72,7 +73,7 @@ export default function Users() {
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    return users.filter((user) => {
+    const result = users.filter((user) => {
       if (roleFilter === "admin" && !user.is_superuser) return false;
       if (roleFilter === "business" && user.is_superuser) return false;
       if (statusFilter === "active" && !user.is_active) return false;
@@ -81,13 +82,19 @@ export default function Users() {
       return [
         user.email,
         user.entity_name || "",
-        user.is_superuser ? "admin" : "entity",
+        user.is_superuser ? "platform admin" : "business user",
       ]
         .join(" ")
         .toLowerCase()
         .includes(needle);
     });
-  }, [users, query, roleFilter, statusFilter]);
+    return [...result].sort((a, b) => {
+      if (currentUser?.id === a.id) return -1;
+      if (currentUser?.id === b.id) return 1;
+      if (a.is_superuser !== b.is_superuser) return a.is_superuser ? -1 : 1;
+      return new Date(b.created_at) - new Date(a.created_at);
+    });
+  }, [users, query, roleFilter, statusFilter, currentUser]);
 
   const handleStatus = async (user) => {
     try {
@@ -156,14 +163,14 @@ export default function Users() {
           />
         </div>
         <select className="input-field" value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)} aria-label="Role filter">
-          <option value="all">All roles</option>
-          <option value="admin">Platform admin</option>
-          <option value="business">Business user</option>
+          <option value="all">{t.allRoles}</option>
+          <option value="admin">{t.platformAdmin}</option>
+          <option value="business">{t.businessUser}</option>
         </select>
         <select className="input-field" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="Status filter">
-          <option value="all">All status</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
+          <option value="all">{t.allStatus}</option>
+          <option value="active">{t.active}</option>
+          <option value="inactive">{t.inactive}</option>
         </select>
       </div>
 
@@ -172,15 +179,16 @@ export default function Users() {
           <caption className="sr-only">Platform users and account status</caption>
           <thead>
             <tr className="border-b border-ink-100 bg-ink-50/60 text-xs uppercase tracking-wide text-ink-300">
-              <th className="px-5 py-3 font-medium">User</th>
+              <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-ink-400">{t.user}</th>
 
-              <th className="px-5 py-3 font-medium">Role</th>
+              <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-ink-400">{t.role}</th>
 
-              <th className="px-5 py-3 font-medium">Entity</th>
+              <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-ink-400">{t.business}</th>
 
-              <th className="px-5 py-3 font-medium">Status</th>
+              <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-ink-400">{t.status}</th>
+              <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-ink-400">{t.lastLogin}</th>
 
-              <th className="px-5 py-3 text-right font-medium">Actions</th>
+              <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-ink-400">{t.actions}</th>
             </tr>
           </thead>
 
@@ -190,7 +198,7 @@ export default function Users() {
             ) : filtered.length === 0 ? (
               <tr>
                 <td
-                  colSpan={5}
+                  colSpan={6}
                   className="px-5 py-10 text-center text-sm text-ink-300"
                 >
                   No users found.
@@ -202,6 +210,8 @@ export default function Users() {
                   key={user.id}
                   user={user}
                   currentUser={currentUser}
+                  language={language}
+                  t={t}
                   onStatus={setPendingStatus}
                   onReset={setResetUser}
                 />
@@ -292,13 +302,13 @@ export default function Users() {
   );
 }
 
-function UserRow({ user, currentUser, onStatus, onReset }) {
+function UserRow({ user, currentUser, language, t, onStatus, onReset }) {
   return (
     <tr className={`border-b border-ink-100 last:border-0 hover:bg-ink-50/50 ${currentUser?.id === user.id ? "bg-signal-500/5" : ""}`}>
       <td className="px-5 py-3.5">
         <p className="font-medium text-ink-900">
           {user.email}
-          {currentUser?.id === user.id && <span className="ml-2 rounded-full bg-ink-900 px-2 py-0.5 text-[10px] text-white">You</span>}
+          {currentUser?.id === user.id && <span className="ml-2 rounded-full bg-ink-900 px-2 py-0.5 text-[10px] text-white">{t.you}</span>}
         </p>
 
         <p className="mt-0.5 text-xs text-ink-300">
@@ -316,7 +326,7 @@ function UserRow({ user, currentUser, onStatus, onReset }) {
             <UserCheck size={15} />
           )}
 
-          {user.is_superuser ? "Platform admin" : "Business user"}
+          {user.is_superuser ? t.platformAdmin : t.businessUser}
         </span>
       </td>
 
@@ -332,13 +342,18 @@ function UserRow({ user, currentUser, onStatus, onReset }) {
         <StatusBadge active={user.is_active} />
       </td>
 
+      <td className="px-5 py-3.5 text-sm text-ink-400">
+        {user.last_login ? formatDate(user.last_login, language) : "—"}
+        {/* TODO: /api/users returns no last_login field. Backend field needed: last_login */}
+      </td>
+
       <td className="px-5 py-3.5">
         <RowActionsMenu
           label={`Actions for ${user.email}`}
           items={[
-            { label: "Reset password", icon: <KeyRound size={14} />, onClick: () => onReset(user) },
+            { label: t.resetPassword || "Reset password", icon: <KeyRound size={14} />, onClick: () => onReset(user) },
             {
-              label: user.is_active ? "Deactivate" : "Activate",
+              label: user.is_active ? t.deactivate || "Deactivate" : t.activate || "Activate",
               icon: user.is_active ? <UserX size={14} /> : <UserCheck size={14} />,
               danger: user.is_active,
               disabled: currentUser?.id === user.id,
