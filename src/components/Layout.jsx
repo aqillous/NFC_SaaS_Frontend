@@ -64,6 +64,8 @@ export default function Layout({ children }) {
   const [businesses, setBusinesses] = useState([]);
   const menuButtonRef = useRef(null);
   const closeButtonRef = useRef(null);
+  const isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+  const searchShortcut = isMac ? "⌘K" : "Ctrl K";
 
   useEffect(() => {
     if (!open) return undefined;
@@ -176,12 +178,12 @@ export default function Layout({ children }) {
           <button
             type="button"
             onClick={() => setCommandOpen(true)}
-            className="flex h-10 w-72 items-center gap-2 rounded-xl border border-ink-100 bg-white px-3 text-sm text-ink-400 shadow-subtle transition hover:border-ink-200"
+            className="flex h-10 w-full max-w-[560px] items-center gap-2 rounded-xl border border-ink-100 bg-white px-3 text-sm text-ink-400 shadow-subtle transition hover:border-ink-200"
             aria-label={t.search}
           >
             <Search size={16} />
-            <span className="flex-1 text-left">{t.commandPlaceholder}</span>
-            <kbd className="rounded-md border border-ink-100 bg-ink-50 px-1.5 py-0.5 text-[10px] font-bold text-ink-400">⌘K</kbd>
+            <span className="min-w-0 flex-1 truncate whitespace-nowrap text-left">{t.searchPlaceholder}</span>
+            <kbd className="shrink-0 rounded-md border border-ink-100 bg-ink-50 px-1.5 py-0.5 text-[10px] font-bold text-ink-400">{searchShortcut}</kbd>
           </button>
           <LanguageSwitch language={language} setLanguage={setLanguage} />
         </header>
@@ -260,8 +262,8 @@ function Account({ user, onSignOut, t }) {
         <button
           onClick={onSignOut}
           className="icon-btn"
-          title={t.signOut}
-          aria-label={t.signOut}
+          title={`${t.signOut} / ${t.logoutTooltip}`}
+          aria-label={`${t.signOut} / ${t.logoutTooltip}`}
         >
           <LogOut size={16} />
         </button>

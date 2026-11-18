@@ -15,6 +15,7 @@ import {
   ExternalLink,
   Search,
   RefreshCw,
+  AlertCircle,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -25,8 +26,8 @@ import { useDashboardLanguage } from "../context/DashboardLanguageContext.jsx";
 import {
   DASHBOARD_COPY,
   DATE_LOCALES,
-  LANGUAGE_OPTIONS,
 } from "../lib/dashboardTranslations.js";
+import { formatDate as formatDateISO, relativeDays } from "../lib/formatters.js";
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -47,6 +48,7 @@ function AdminDashboard({ language, setLanguage }) {
   const t = DASHBOARD_COPY[language];
   const [stats, setStats] = useState(null);
   const [subscriptions, setSubscriptions] = useState([]);
+  const [businesses, setBusinesses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState("30");
 
@@ -56,10 +58,12 @@ function AdminDashboard({ language, setLanguage }) {
     Promise.all([
       api.getDashboardStats(),
       api.listSubscriptions({}),
+      api.listEntities({}),
     ])
-      .then(([statsResponse, subscriptionsResponse]) => {
+      .then(([statsResponse, subscriptionsResponse, businessesResponse]) => {
         setStats(statsResponse.data);
         setSubscriptions(subscriptionsResponse.data);
+        setBusinesses(businessesResponse.data);
       })
       .catch((error) => {
         toast.error(
@@ -97,6 +101,7 @@ function AdminDashboard({ language, setLanguage }) {
         <div className="space-y-4">
           <NeedsAttention
             subscriptions={subscriptions}
+            businesses={businesses}
             language={language}
           />
 
@@ -296,7 +301,7 @@ function SectionHeading({ title }) {
   );
 }
 
-function NeedsAttention({ subscriptions, language }) {
+function NeedsAttention({ subscriptions, businesses, language }) {
   const rows = useMemo(() => {
     const now = Date.now();
     const thirtyDays = 30 * 86400000;
@@ -305,41 +310,72 @@ function NeedsAttention({ subscriptions, language }) {
         const end = new Date(subscription.ends_at).getTime();
         return end < now || end - now <= thirtyDays;
       })
-      .sort((a, b) => new Date(a.ends_at) - new Date(b.ends_at))
+      .sort((a, b) => {
+        const aExpired = new Date(a.ends_at).getTime() < now;
+        const bExpired = new Date(b.ends_at).getTime() < now;
+        if (aExpired !== bExpired) return aExpired ? -1 : 1;
+        return new Date(a.ends_at) - new Date(b.ends_at);
+      })
       .slice(0, 5);
   }, [subscriptions]);
 
-  if (!rows.length) return null;
+  const businessMap = useMemo(
+    () => Object.fromEntries(businesses.map((business) => [business.id, business.name])),
+    [businesses],
+  );
 
   return (
-    <section className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 sm:p-5">
+    <section className="rounded-2xl border border-amber-500/20 border-l-4 border-l-amber-500 bg-white p-4 sm:p-5">
       <div className="flex items-center justify-between">
-        <div>
+        <div className="flex min-w-0 items-start gap-3">
+          <AlertTriangle size={20} className="mt-0.5 shrink-0 text-amber-500" />
+          <div>
           <h2 className="font-display text-lg font-semibold text-ink-900">
             {language === "az" ? "Diqqət tələb edir" : "Needs attention"}
           </h2>
           <p className="mt-1 text-xs text-ink-400">
-            {language === "az" ? "Abunəliklər vaxt bitmə riski daşıyır." : "Subscriptions approaching or past their end date."}
+            {language === "az"
+              ? "Müddəti bitmiş və ya 30 günə bitəcək abunəliklər"
+              : "Subscriptions that are expired or ending within 30 days"}
           </p>
+          </div>
         </div>
-        <Link to="/subscriptions" className="text-xs font-bold text-amber-700 hover:underline">
+        <Link to="/subscriptions?status=EXPIRING_SOON" className="shrink-0 text-xs font-bold text-amber-700 hover:underline">
           {language === "az" ? "Hamısına bax" : "View all"}
         </Link>
       </div>
-      <div className="mt-3 divide-y divide-amber-500/10">
-        {rows.map((subscription) => (
-          <Link
-            key={subscription.id}
-            to={`/subscriptions?status=${new Date(subscription.ends_at).getTime() < Date.now() ? "EXPIRED" : "EXPIRING_SOON"}`}
-            className="flex items-center justify-between py-2.5 text-sm hover:text-amber-700"
-          >
-            <span className="font-semibold text-ink-700">{subscription.entity_name || subscription.entity_id}</span>
-            <span className="text-xs text-ink-400">
-              {new Date(subscription.ends_at).toLocaleDateString()}
-            </span>
-          </Link>
-        ))}
-      </div>
+      {rows.length === 0 ? (
+        <div className="mt-4 flex items-center gap-2 rounded-xl bg-signal-500/5 p-3 text-sm text-signal-700">
+          <CheckCircle2 size={18} />
+          {language === "az" ? "Hamısı yenidir" : "Everything is up to date"}
+        </div>
+      ) : (
+        <div className="mt-3 divide-y divide-ink-100">
+          {rows.map((subscription) => {
+            const expired = new Date(subscription.ends_at).getTime() < Date.now();
+            const name = businessMap[subscription.entity_id] || subscription.entity_name || "—";
+            return (
+              <Link
+                key={subscription.id}
+                to={`/subscriptions?business=${encodeURIComponent(name)}&status=${expired ? "EXPIRED" : "EXPIRING_SOON"}`}
+                className="group flex items-center gap-3 py-2.5"
+              >
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink-900 text-xs font-bold text-white">
+                  {name?.[0]?.toUpperCase() || "B"}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-ink-800 group-hover:text-signal-600">{name}</p>
+                  <p className="mt-0.5 text-xs text-ink-400">{formatDateISO(subscription.ends_at, language)}</p>
+                </div>
+                <span className={`rounded-full px-2 py-1 text-[11px] font-bold ${expired ? "bg-rust-500/10 text-rust-500" : "bg-amber-500/10 text-amber-700"}`}>
+                  {relativeDays(subscription.ends_at, language)}
+                </span>
+                <span className="text-xs font-bold text-signal-600">{language === "az" ? "Yenilə" : "Renew"}</span>
+              </Link>
+            );
+          })}
+        </div>
+      )}
     </section>
   );
 }
@@ -790,21 +826,6 @@ function ScoreBar({ label, value }) {
 function DashboardToolbar({ language, setLanguage, loading, onRefresh, t }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <label className="sr-only" htmlFor="dashboard-language">
-        {t.language}
-      </label>
-      <select
-        id="dashboard-language"
-        value={language}
-        onChange={(event) => setLanguage(event.target.value)}
-        className="h-10 rounded-xl border border-ink-100 bg-white px-2.5 text-sm font-semibold text-ink-700 outline-none transition focus:border-signal-500"
-      >
-        {LANGUAGE_OPTIONS.map(({ value, label }) => (
-          <option key={value} value={value}>
-            {label}
-          </option>
-        ))}
-      </select>
       <button
         onClick={onRefresh}
         className="btn-secondary"
