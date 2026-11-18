@@ -10,18 +10,27 @@ import {
   X,
   Copy,
   RefreshCw,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 
 import toast from "react-hot-toast";
+import { Link } from "react-router-dom";
 
 import * as api from "../lib/api.js";
 import PageHeader from "../components/PageHeader.jsx";
 import { useDashboardLanguage } from "../context/DashboardLanguageContext.jsx";
 import { DASHBOARD_COPY } from "../lib/dashboardTranslations.js";
+import RowActionsMenu from "../components/RowActionsMenu.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
+import ConfirmDialog from "../components/ConfirmDialog.jsx";
 
 export default function Users() {
   const { language } = useDashboardLanguage();
   const t = DASHBOARD_COPY[language];
+  const { user: currentUser } = useAuth();
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [users, setUsers] = useState([]);
 
   const [entities, setEntities] = useState([]);
@@ -33,6 +42,7 @@ export default function Users() {
   const [showCreate, setShowCreate] = useState(false);
 
   const [resetUser, setResetUser] = useState(null);
+  const [pendingStatus, setPendingStatus] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -62,22 +72,22 @@ export default function Users() {
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
-
-    if (!needle) {
-      return users;
-    }
-
-    return users.filter((user) =>
-      [
+    return users.filter((user) => {
+      if (roleFilter === "admin" && !user.is_superuser) return false;
+      if (roleFilter === "business" && user.is_superuser) return false;
+      if (statusFilter === "active" && !user.is_active) return false;
+      if (statusFilter === "inactive" && user.is_active) return false;
+      if (!needle) return true;
+      return [
         user.email,
         user.entity_name || "",
         user.is_superuser ? "admin" : "entity",
       ]
         .join(" ")
         .toLowerCase()
-        .includes(needle),
-    );
-  }, [users, query]);
+        .includes(needle);
+    });
+  }, [users, query, roleFilter, statusFilter]);
 
   const handleStatus = async (user) => {
     try {
@@ -130,20 +140,31 @@ export default function Users() {
         }
       />
 
-      <div className="relative mb-4 max-w-xl">
-        <Search
-          size={15}
-          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-300"
-        />
-
-        <input
-          className="input-field pl-9"
-          type="search"
-          aria-label={t.searchUsers}
-          placeholder={t.searchUsers}
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-        />
+      <div className="mb-4 grid gap-2 sm:grid-cols-[1fr_10rem_10rem]">
+        <div className="relative">
+          <Search
+            size={15}
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-300"
+          />
+          <input
+            className="input-field pl-9"
+            type="search"
+            aria-label={t.searchUsers}
+            placeholder={t.searchUsers}
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+        </div>
+        <select className="input-field" value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)} aria-label="Role filter">
+          <option value="all">All roles</option>
+          <option value="admin">Platform admin</option>
+          <option value="business">Business user</option>
+        </select>
+        <select className="input-field" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="Status filter">
+          <option value="all">All status</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
       </div>
 
       <div className="hidden overflow-hidden rounded-2xl border border-ink-100 bg-white shadow-subtle md:block">
@@ -180,7 +201,8 @@ export default function Users() {
                 <UserRow
                   key={user.id}
                   user={user}
-                  onStatus={handleStatus}
+                  currentUser={currentUser}
+                  onStatus={setPendingStatus}
                   onReset={setResetUser}
                 />
               ))
@@ -196,6 +218,9 @@ export default function Users() {
               <div className="min-w-0">
                 <p className="truncate font-semibold text-ink-900">
                   {user.email}
+                  {currentUser?.id === user.id && (
+                    <span className="ml-2 rounded-full bg-ink-900 px-2 py-0.5 text-[10px] text-white">You</span>
+                  )}
                 </p>
 
                 <p className="mt-1 text-xs text-ink-400">
@@ -208,23 +233,20 @@ export default function Users() {
               <StatusBadge active={user.is_active} />
             </div>
 
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <button
-                onClick={() => setResetUser(user)}
-                className="btn-secondary"
-              >
-                <KeyRound size={14} />
-                Reset password
-              </button>
-
-              <button
-                onClick={() => handleStatus(user)}
-                className={user.is_active ? "btn-danger" : "btn-secondary"}
-              >
-                {user.is_active ? <UserX size={14} /> : <UserCheck size={14} />}
-
-                {user.is_active ? "Deactivate" : "Activate"}
-              </button>
+            <div className="mt-3 flex items-center justify-end" onClick={(event) => event.stopPropagation()}>
+              <RowActionsMenu
+                label={`Actions for ${user.email}`}
+                items={[
+                  { label: "Reset password", icon: <KeyRound size={14} />, onClick: () => setResetUser(user) },
+                  {
+                    label: user.is_active ? "Deactivate" : "Activate",
+                    icon: user.is_active ? <UserX size={14} /> : <UserCheck size={14} />,
+                    danger: user.is_active,
+                    disabled: currentUser?.id === user.id,
+                    onClick: () => setPendingStatus(user),
+                  },
+                ]}
+              />
             </div>
           </div>
         ))}
@@ -249,15 +271,35 @@ export default function Users() {
           onSubmit={(password) => handleReset(resetUser, password)}
         />
       )}
+      <ConfirmDialog
+        open={!!pendingStatus}
+        title={pendingStatus?.is_active ? "Deactivate user" : "Activate user"}
+        message={
+          pendingStatus?.is_active
+            ? "This prevents the user from signing in, but does not delete the account."
+            : "This restores the user's ability to sign in."
+        }
+        confirmLabel={pendingStatus?.is_active ? "Deactivate" : "Activate"}
+        danger={pendingStatus?.is_active}
+        onCancel={() => setPendingStatus(null)}
+        onConfirm={async () => {
+          const user = pendingStatus;
+          setPendingStatus(null);
+          await handleStatus(user);
+        }}
+      />
     </div>
   );
 }
 
-function UserRow({ user, onStatus, onReset }) {
+function UserRow({ user, currentUser, onStatus, onReset }) {
   return (
-    <tr className="border-b border-ink-100 last:border-0 hover:bg-ink-50/50">
+    <tr className={`border-b border-ink-100 last:border-0 hover:bg-ink-50/50 ${currentUser?.id === user.id ? "bg-signal-500/5" : ""}`}>
       <td className="px-5 py-3.5">
-        <p className="font-medium text-ink-900">{user.email}</p>
+        <p className="font-medium text-ink-900">
+          {user.email}
+          {currentUser?.id === user.id && <span className="ml-2 rounded-full bg-ink-900 px-2 py-0.5 text-[10px] text-white">You</span>}
+        </p>
 
         <p className="mt-0.5 text-xs text-ink-300">
           Created {new Date(user.created_at).toLocaleDateString()}
@@ -265,45 +307,45 @@ function UserRow({ user, onStatus, onReset }) {
       </td>
 
       <td className="px-5 py-3.5">
-        <span className="inline-flex items-center gap-1.5 text-ink-600">
+        <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
+          user.is_superuser ? "border border-ink-900 text-ink-900" : "bg-ink-100 text-ink-600"
+        }`}>
           {user.is_superuser ? (
             <ShieldCheck size={15} />
           ) : (
             <UserCheck size={15} />
           )}
 
-          {user.is_superuser ? "Platform admin" : "Entity user"}
+          {user.is_superuser ? "Platform admin" : "Business user"}
         </span>
       </td>
 
-      <td className="px-5 py-3.5 text-ink-500">{user.entity_name || "—"}</td>
+      <td className="px-5 py-3.5">
+        {user.entity_id ? (
+          <Link to={`/entities/${user.entity_id}`} className="font-medium text-signal-600 hover:underline">
+            {user.entity_name || "Business"}
+          </Link>
+        ) : <span className="text-ink-300">—</span>}
+      </td>
 
       <td className="px-5 py-3.5">
         <StatusBadge active={user.is_active} />
       </td>
 
       <td className="px-5 py-3.5">
-        <div className="flex justify-end gap-1">
-          <button
-            className="icon-btn"
-            title="Reset password"
-            onClick={() => onReset(user)}
-          >
-            <KeyRound size={14} />
-          </button>
-
-          <button
-            className={
-              user.is_active
-                ? "icon-btn hover:bg-rust-500/10 hover:text-rust-500"
-                : "icon-btn hover:bg-signal-500/10 hover:text-signal-600"
-            }
-            title={user.is_active ? "Deactivate user" : "Activate user"}
-            onClick={() => onStatus(user)}
-          >
-            {user.is_active ? <UserX size={14} /> : <UserCheck size={14} />}
-          </button>
-        </div>
+        <RowActionsMenu
+          label={`Actions for ${user.email}`}
+          items={[
+            { label: "Reset password", icon: <KeyRound size={14} />, onClick: () => onReset(user) },
+            {
+              label: user.is_active ? "Deactivate" : "Activate",
+              icon: user.is_active ? <UserX size={14} /> : <UserCheck size={14} />,
+              danger: user.is_active,
+              disabled: currentUser?.id === user.id,
+              onClick: () => onStatus(user),
+            },
+          ]}
+        />
       </td>
     </tr>
   );
@@ -331,6 +373,8 @@ function CreateUserModal({ entities, onClose, onCreated }) {
   const [entityId, setEntityId] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [businessQuery, setBusinessQuery] = useState("");
 
   const generatePassword = () => {
     const chars =
@@ -398,6 +442,23 @@ function CreateUserModal({ entities, onClose, onCreated }) {
               Platform admin
             </button>
           </div>
+          <div id="password-strength" className="mt-2">
+            <div className="grid grid-cols-4 gap-1">
+              {[1, 2, 3, 4].map((level) => (
+                <span
+                  key={level}
+                  className={`h-1.5 rounded-full ${
+                    passwordStrength(password) >= level
+                      ? passwordStrength(password) >= 3 ? "bg-signal-500" : "bg-amber-500"
+                      : "bg-ink-100"
+                  }`}
+                />
+              ))}
+            </div>
+            {password && password.length < 8 && (
+              <p className="mt-1 text-xs text-rust-500">Password must be at least 8 characters.</p>
+            )}
+          </div>
         </div>
 
         <div>
@@ -417,24 +478,28 @@ function CreateUserModal({ entities, onClose, onCreated }) {
 
         {mode === "entity" && (
           <div>
-            <label className="field-label" htmlFor="create-entity">
-              Entity
-            </label>
-
+            <label className="field-label" htmlFor="create-business-search">Business</label>
+            <input
+              id="create-business-search"
+              className="input-field"
+              type="search"
+              value={businessQuery}
+              onChange={(event) => setBusinessQuery(event.target.value)}
+              placeholder="Search businesses..."
+            />
             <select
               id="create-entity"
-              className="input-field"
+              className="input-field mt-2"
               required
               value={entityId}
-              onChange={(e) => setEntityId(e.target.value)}
+              onChange={(event) => setEntityId(event.target.value)}
             >
-              <option value="">Select entity…</option>
-
-              {entities.map((entity) => (
-                <option key={entity.id} value={entity.id}>
-                  {entity.name}
-                </option>
-              ))}
+              <option value="">Select business…</option>
+              {entities
+                .filter((entity) => entity.name.toLowerCase().includes(businessQuery.toLowerCase()))
+                .map((entity) => (
+                  <option key={entity.id} value={entity.id}>{entity.name}</option>
+                ))}
             </select>
           </div>
         )}
@@ -445,15 +510,26 @@ function CreateUserModal({ entities, onClose, onCreated }) {
           </label>
 
           <div className="flex gap-2">
-            <input
-              id="create-password"
-              className="input-field"
-              type="text"
-              minLength={8}
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
+            <div className="relative flex-1">
+              <input
+                id="create-password"
+                className="input-field pr-11"
+                type={showPassword ? "text" : "password"}
+                minLength={8}
+                required
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                aria-describedby="password-strength"
+              />
+              <button
+                type="button"
+                className="absolute right-0 top-0 flex h-11 w-11 items-center justify-center text-ink-400"
+                onClick={() => setShowPassword((current) => !current)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
 
             <button
               type="button"
@@ -606,6 +682,15 @@ function Modal({ title, children, onClose }) {
       </div>
     </div>
   );
+}
+
+function passwordStrength(password) {
+  let score = 0;
+  if (password.length >= 8) score++;
+  if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score++;
+  if (/\d/.test(password)) score++;
+  if (/[^A-Za-z0-9]/.test(password)) score++;
+  return score;
 }
 
 function SkeletonRows() {
