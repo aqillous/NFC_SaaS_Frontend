@@ -46,15 +46,20 @@ export default function Dashboard() {
 function AdminDashboard({ language, setLanguage }) {
   const t = DASHBOARD_COPY[language];
   const [stats, setStats] = useState(null);
+  const [subscriptions, setSubscriptions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [dateRange, setDateRange] = useState("30");
 
   const load = () => {
     setLoading(true);
 
-    api
-      .getDashboardStats()
-      .then(({ data }) => {
-        setStats(data);
+    Promise.all([
+      api.getDashboardStats(),
+      api.listSubscriptions({}),
+    ])
+      .then(([statsResponse, subscriptionsResponse]) => {
+        setStats(statsResponse.data);
+        setSubscriptions(subscriptionsResponse.data);
       })
       .catch((error) => {
         toast.error(
@@ -90,13 +95,21 @@ function AdminDashboard({ language, setLanguage }) {
         <SkeletonGrid />
       ) : stats ? (
         <div className="space-y-4">
-          {/* Entity statistics */}
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+          <NeedsAttention
+            subscriptions={subscriptions}
+            language={language}
+          />
+
+          <section>
+            <SectionHeading title={language === "az" ? "Bizneslər" : "Businesses"} />
+            <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-3">
             <StatTile
               label={t.totalEntities}
               value={stats.total_entities}
               icon={Building2}
               accent="ink"
+              to="/entities"
+              viewLabel={language === "az" ? "Bax" : "View"}
             />
 
             <StatTile
@@ -104,6 +117,8 @@ function AdminDashboard({ language, setLanguage }) {
               value={stats.total_restaurants}
               icon={UtensilsCrossed}
               accent="ink"
+              to="/entities?type=RESTAURANT"
+              viewLabel={language === "az" ? "Bax" : "View"}
             />
 
             <StatTile
@@ -111,13 +126,22 @@ function AdminDashboard({ language, setLanguage }) {
               value={stats.total_hotels}
               icon={BedDouble}
               accent="ink"
+              to="/entities?type=HOTEL"
+              viewLabel={language === "az" ? "Bax" : "View"}
             />
+            </div>
+          </section>
 
+          <section>
+            <SectionHeading title={language === "az" ? "Abunəliklər" : "Subscriptions"} />
+            <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-3">
             <StatTile
               label={t.activeSubscriptions}
               value={stats.active_subscriptions}
               icon={CheckCircle2}
               accent="signal"
+              to="/subscriptions?status=ACTIVE"
+              viewLabel={language === "az" ? "Bax" : "View"}
             />
 
             <StatTile
@@ -125,6 +149,9 @@ function AdminDashboard({ language, setLanguage }) {
               value={stats.expired_subscriptions}
               icon={XCircle}
               accent="rust"
+              to="/subscriptions?status=EXPIRED"
+              viewLabel={language === "az" ? "Bax" : "View"}
+              muted={Number(stats.expired_subscriptions) === 0}
             />
 
             <StatTile
@@ -132,28 +159,50 @@ function AdminDashboard({ language, setLanguage }) {
               value={stats.expiring_soon}
               icon={AlertTriangle}
               accent="amber"
+              to="/subscriptions?status=EXPIRING_SOON"
+              viewLabel={language === "az" ? "Bax" : "View"}
+              muted={Number(stats.expiring_soon) === 0}
             />
-          </div>
+            </div>
+          </section>
 
-          {/* NFC statistics */}
-          <div className="grid grid-cols-2 gap-3">
-            <StatTile
-              label={t.googleOpensToday}
-              value={stats.scans_today}
-              icon={ExternalLink}
-              accent="signal"
-            />
-
-            <StatTile
-              label={t.googleOpensMonth}
-              value={stats.scans_this_month}
-              icon={CalendarDays}
-              accent="signal"
-            />
-          </div>
+          <section>
+            <div className="flex items-center justify-between gap-3">
+              <SectionHeading title={language === "az" ? "Google keçidləri" : "Google redirects"} />
+              <select
+                value={dateRange}
+                onChange={(event) => setDateRange(event.target.value)}
+                disabled
+                aria-label={language === "az" ? "Tarix aralığı" : "Date range"}
+                title={language === "az" ? "TODO: API tarix aralığı dəstəklənməyib" : "TODO: API range support not available"}
+                className="h-10 rounded-xl border border-ink-100 bg-ink-50 px-3 text-xs font-semibold text-ink-400"
+              >
+                <option value="today">{language === "az" ? "Bu gün" : "Today"}</option>
+                <option value="7">7 {language === "az" ? "gün" : "days"}</option>
+                <option value="30">30 {language === "az" ? "gün" : "days"}</option>
+                <option value="month">{language === "az" ? "Bu ay" : "This month"}</option>
+              </select>
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              <StatTile
+                label={t.googleOpensToday}
+                value={stats.scans_today}
+                icon={ExternalLink}
+                accent="signal"
+              />
+              <StatTile
+                label={t.googleOpensMonth}
+                value={stats.scans_this_month}
+                icon={CalendarDays}
+                accent="signal"
+              />
+            </div>
+          </section>
 
           {/* Feedback overview */}
-          <section className="panel p-4 sm:p-5">
+          <section>
+            <SectionHeading title={language === "az" ? "Rəylər" : "Reviews"} />
+            <div className="panel mt-3 p-4 sm:p-5">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="font-display text-lg font-semibold text-ink-900">
@@ -171,12 +220,9 @@ function AdminDashboard({ language, setLanguage }) {
             </div>
 
             <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-              <FeedbackMetric
+              <RatingMetric
                 label={t.averageRating}
-                value={`${Number(stats.average_feedback_score || 0).toFixed(
-                  2,
-                )} / 5`}
-                icon={Star}
+                value={Number(stats.average_feedback_score || 0)}
               />
 
               <FeedbackMetric
@@ -189,10 +235,11 @@ function AdminDashboard({ language, setLanguage }) {
                 label={t.redirectRate}
                 value={`${Number(stats.google_redirect_rate || 0).toFixed(1)}%`}
                 icon={TrendingUp}
+                tooltip={language === "az" ? "Google-a yönləndirilən rəylərin bütün rəylərə nisbəti." : "The percentage of all feedback submissions redirected to Google."}
               />
 
               <FeedbackMetric
-                label={t.thisMonth}
+                label={t.thisMonthReviews}
                 value={stats.feedback_this_month}
                 icon={MessageSquare}
               />
@@ -207,7 +254,27 @@ function AdminDashboard({ language, setLanguage }) {
               <MiniStat
                 label={t.internalFeedback}
                 value={stats.internal_feedback ?? 0}
+                tooltip={language === "az" ? "Yalnız bizneslə paylaşılıb, Google-a yönləndirilməyən rəylər." : "Feedback kept with the business and not sent to Google."}
               />
+            </div>
+            <FeedbackFunnel stats={stats} language={language} />
+            </div>
+          </section>
+          <section>
+            <SectionHeading title={language === "az" ? "Qrafiklər" : "Charts"} />
+            <div className="mt-3 grid gap-3 lg:grid-cols-2">
+              <div className="panel flex h-48 items-center justify-center border-dashed p-5 text-center">
+                <p className="text-sm text-ink-400">
+                  <span className="font-semibold text-ink-600">TODO:</span>{" "}
+                  {language === "az" ? "Günlər üzrə rəy qrafiki" : "Reviews per day chart"}
+                </p>
+              </div>
+              <div className="panel flex h-48 items-center justify-center border-dashed p-5 text-center">
+                <p className="text-sm text-ink-400">
+                  <span className="font-semibold text-ink-600">TODO:</span>{" "}
+                  {language === "az" ? "Qiymət paylanması" : "Rating distribution chart"}
+                </p>
+              </div>
             </div>
           </section>
         </div>
@@ -221,12 +288,126 @@ function AdminDashboard({ language, setLanguage }) {
   );
 }
 
-function FeedbackMetric({ label, value, icon: Icon }) {
+function SectionHeading({ title }) {
+  return (
+    <h2 className="font-display text-lg font-semibold text-ink-900">
+      {title}
+    </h2>
+  );
+}
+
+function NeedsAttention({ subscriptions, language }) {
+  const rows = useMemo(() => {
+    const now = Date.now();
+    const thirtyDays = 30 * 86400000;
+    return subscriptions
+      .filter((subscription) => {
+        const end = new Date(subscription.ends_at).getTime();
+        return end < now || end - now <= thirtyDays;
+      })
+      .sort((a, b) => new Date(a.ends_at) - new Date(b.ends_at))
+      .slice(0, 5);
+  }, [subscriptions]);
+
+  if (!rows.length) return null;
+
+  return (
+    <section className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 sm:p-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="font-display text-lg font-semibold text-ink-900">
+            {language === "az" ? "Diqqət tələb edir" : "Needs attention"}
+          </h2>
+          <p className="mt-1 text-xs text-ink-400">
+            {language === "az" ? "Abunəliklər vaxt bitmə riski daşıyır." : "Subscriptions approaching or past their end date."}
+          </p>
+        </div>
+        <Link to="/subscriptions" className="text-xs font-bold text-amber-700 hover:underline">
+          {language === "az" ? "Hamısına bax" : "View all"}
+        </Link>
+      </div>
+      <div className="mt-3 divide-y divide-amber-500/10">
+        {rows.map((subscription) => (
+          <Link
+            key={subscription.id}
+            to={`/subscriptions?status=${new Date(subscription.ends_at).getTime() < Date.now() ? "EXPIRED" : "EXPIRING_SOON"}`}
+            className="flex items-center justify-between py-2.5 text-sm hover:text-amber-700"
+          >
+            <span className="font-semibold text-ink-700">{subscription.entity_name || subscription.entity_id}</span>
+            <span className="text-xs text-ink-400">
+              {new Date(subscription.ends_at).toLocaleDateString()}
+            </span>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function RatingMetric({ label, value }) {
+  const safe = Math.max(0, Math.min(5, Number(value) || 0));
   return (
     <div className="rounded-xl bg-ink-50 p-3.5">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-semibold uppercase tracking-wide text-ink-400">
+        <span className="text-xs font-semibold uppercase tracking-wide text-ink-400">{label}</span>
+        <Star size={16} className="text-amber-500" />
+      </div>
+      <p className="mt-2 text-xl font-bold text-ink-900">{safe.toFixed(2)} / 5</p>
+      <div className="mt-2 flex gap-1" aria-label={`${safe.toFixed(2)} out of 5`}>
+        {[0, 1, 2, 3, 4].map((index) => {
+          const fill = Math.max(0, Math.min(1, safe - index));
+          return (
+            <span key={index} className="relative h-4 w-4">
+              <Star size={16} className="absolute text-ink-200" />
+              {fill > 0 && (
+                <span className="absolute left-0 top-0 h-4 overflow-hidden" style={{ width: `${fill * 100}%` }}>
+                  <Star size={16} className="fill-amber-400 text-amber-400" />
+                </span>
+              )}
+            </span>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function FeedbackFunnel({ stats, language }) {
+  const taps = Number(stats.scans_this_month || 0);
+  const ratings = Number(stats.total_feedback || 0);
+  const redirects = Number(stats.google_redirects || 0);
+  const privateFeedback = Number(stats.internal_feedback || 0);
+  const steps = [
+    { label: language === "az" ? "Keçidlər" : "Taps", value: taps },
+    { label: language === "az" ? "Rəy verilib" : "Rating given", value: ratings },
+    { label: language === "az" ? "Google keçidi" : "Google redirect", value: redirects },
+    { label: language === "az" ? "Bizneslə paylaşılan" : "Private feedback", value: privateFeedback },
+  ];
+  return (
+    <div className="mt-5 border-t border-ink-100 pt-4">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {steps.map((step, index) => (
+          <div key={step.label} className="relative rounded-xl bg-ink-50 p-3">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-ink-400">{step.label}</p>
+            <p className="mt-1 text-lg font-bold text-ink-900">{step.value}</p>
+            {index < steps.length - 1 && <span className="absolute right-[-7px] top-1/2 z-10 hidden h-3 w-3 -rotate-45 border-b border-r border-ink-100 bg-ink-50 sm:block" />}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FeedbackMetric({ label, value, icon: Icon, tooltip }) {
+  return (
+    <div className="rounded-xl bg-ink-50 p-3.5">
+      <div className="flex items-center justify-between gap-2">
+        <span
+          className="text-xs font-semibold uppercase tracking-wide text-ink-400"
+          title={tooltip}
+        >
           {label}
+          {tooltip && <span className="ml-1 text-ink-300" aria-label={tooltip}>ⓘ</span>}
         </span>
 
         <Icon size={16} className="shrink-0 text-signal-500" />
@@ -658,11 +839,13 @@ function MetricCard({ label, value, suffix = "", icon: Icon }) {
   );
 }
 
-function MiniStat({ label, value }) {
+function MiniStat({ label, value, tooltip }) {
   return (
     <div className="rounded-xl bg-ink-50 p-3">
-      <p className="text-xs text-ink-400">{label}</p>
-
+      <p className="text-xs text-ink-400" title={tooltip}>
+        {label}
+        {tooltip && <span className="ml-1 text-ink-300" aria-label={tooltip}>ⓘ</span>}
+      </p>
       <p className="mt-1 text-lg font-bold text-ink-900">{value}</p>
     </div>
   );

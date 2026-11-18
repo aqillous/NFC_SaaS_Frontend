@@ -181,7 +181,7 @@ export const DASHBOARD_COPY = {
     dashboardDescription:
       "A quick overview of your review network, customer feedback and Google activity.",
     refresh: "Refresh",
-    totalEntities: "Total entities",
+    totalEntities: "Total businesses",
     restaurants: "Restaurants",
     hotels: "Hotels",
     activeSubscriptions: "Active subscriptions",
@@ -190,7 +190,7 @@ export const DASHBOARD_COPY = {
     googleOpensToday: "Google opens today",
     googleOpensMonth: "Google opens this month",
     feedbackOverview: "Feedback overview",
-    allBusinessFeedback: "Customer feedback across all entities.",
+    allBusinessFeedback: "Customer feedback across all businesses.",
     submissions: "submissions",
     averageRating: "Average rating",
     googleOpens: "Google opens",
